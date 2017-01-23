@@ -1,0 +1,177 @@
+---
+title: "Implementing the Parametric G Formula with Complex Longitudinal Data"
+author: Ashley I. Naimi, PhD
+output:
+  pdf_document:
+    includes:
+      in_header: header.tex
+fontsize: 11pt
+geometry: margin=.75in
+---
+
+
+**Abstract**
+Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three ``g'' methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures. This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
+
+\newpage
+
+**Outline**
+
+\begin{itemize}
+\item Introduction to causal inference using potential outcomes
+\begin{itemize}
+\item Language and Notation
+\item Estimate, Estimand, Estimator
+\item Identifiability
+\begin{itemize}
+\item[a.] Counterfactual Consistency
+\item[b.] Excheangability
+\item[c.] Positivity
+\end{itemize}
+\item The Logic of Causal Inference
+\end{itemize}
+\item Statistical Theory Review (Short \& Pain Free)
+\begin{itemize}
+\item Law of total probability
+\end{itemize}
+\end{itemize}
+
+\newpage
+\onehalfspacing
+
+**Introduction**
+
+<p style="text-align: left;"> The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation. The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework. </p>
+
+A central notion in the potential outcomes framework is the idea of the counterfactual. This notion stems from the intuitive / informal practice of interpreting cause-effect relations as \underline{circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different}. 
+
+Suppose we ask: "what is the effect of smoking on CVD risk?" To answer this question, we would do a study in which we collect data on smoking ($X$), CVD risk ($Y$), and some confounders ($C$). We would enter these data into a computer, perform some calculations with the data, and obtain a number that we would interpret as the answer to our question.  
+
+The problem is that the calculations performed by the computer are \underline{rigorously defined mathematical objects}. On the other hand, the \underline{english language sentence about the "effect of smoking" is ambiguous}.
+
+Consider a very simple scenario setting with one binary expsoure ($X$), one binary confounder ($C$), and one continuous outcome ($Y$), represented using the confounding triangle:
+\begin{center}
+\begin{tikzpicture}[line width=0.05cm]
+
+\node [align=center] (x) at (0,0) {$X$};
+\node [align=center] (y) at (2.55,0) {$Y$};
+\node [align=center] (c) at (1.25,1.25) {$C$};
+
+\begin{scope}[line width=.05cm,shorten >= 5pt, shorten <= 5pt]
+\draw[->,color=black] (x) to (y);
+\draw[->,color=black] (c) to (y);
+\draw[->,color=black] (c) to (x);
+\end{scope}
+\end{tikzpicture}
+\end{center}
+Suppose we have data and want to study this relation. We fit a linear regression model as follows:
+\begin{equation}
+ E( Y \mid X, C) = \beta_0 + \beta_1 X + \beta_2 C,
+\end{equation}
+and estimate $\hat{\beta}_1= 50.0$. It would be tempting to interpret this as: if everyone were exposed, the average outcome in the population would be $50.0$ units higher than the average outcome if everyone were unexposed. But notice what we (would have) done here: we entered 
+
+
+This simple example shows some of the difficulties inherent in interpreting confidence intervals. Suppose I provide you with data on $N=100$ individuals and seven variables:
+\begin{equation*}
+  \mathcal{O} = \{Y,X,C_1,C_2,C_3,C_4,C_5\},
+\end{equation*}
+where $X$ is an exposure, $Y$ is an outcome, and $\mathbf{C}$ are confounders ($\mathcal{O}$ is used here to denote ``observed'' data). Your task is to estimate the risk ratio for the $X\rightarrow Y$ relation, and decide whether action should be taken to modify $X$ in the population (i.e., does $X$ actually effect $Y$?). In this setting, all variables are binary. Here are their means:
+
+```{r, echo=FALSE,comment=NA}
+  set.seed(123)
+  N<-100
+  y<-as.numeric(rnorm(N,5,1)>6.25)
+  x<-rbinom(N,1,.5)
+  c1<-rbinom(N,1,.5)
+  c2<-rbinom(N,1,.5)
+  c3<-rbinom(N,1,.5)
+  c4<-rbinom(N,1,.5)
+  c5<-rbinom(N,1,.5)
+  d<-data.frame(y,x,c1,c2,c3,c4,c5)
+  m1<-as.data.frame(summary(d)[4,])
+  names(m1)<-c(" ")
+  m1
+```
+Because the outcome is binary and rare, we can use logistic regression to estimate the risk ratio. The code to do this in R is:
+```{r}
+  model1<-glm(y~x+c1+c2+c3+c4+c5,data=d,family=binomial(link="logit"))
+```
+The point estimate and standard error of the coefficient for $X$ in this model are:
+```{r,echo=FALSE,comment=NA}
+round(summary(model1)$coefficients[2,c(1,2)],1)
+```
+We can easily construct 95\% Wald confidence intervals using this information as $\exp(Estimate \pm 1.96 \times SE(Estimate))$. Applying this equation gives the following risk ratio and 95\% CIs: `r round(exp(summary(model1)$coefficients[2,1]),1)` (`r round(exp(summary(model1)$coefficients[2,c(1)]-1.96*summary(model1)$coefficients[2,c(2)]),1)`, `r round(exp(summary(model1)$coefficients[2,c(1)]+1.96*summary(model1)$coefficients[2,c(2)]),1)`), which is huge! If you treat 95\% confidence intervals as null hypothesis significance tests, and naively interpret null hypothesis significance test results, you might say that $X$ affects $Y$, and recommend that action be taken to reduce $X$ in the population so that $Y$ will also be reduced. In this case, **you would be wrong.**
+
+Why? These data were simulated from the following R code:
+```{r}
+  set.seed(123)
+  N<-100
+  y<-as.numeric(rnorm(N,5,1)>6.25);x<-rbinom(N,1,.5);c1<-rbinom(N,1,.5)
+  c2<-rbinom(N,1,.5);c3<-rbinom(N,1,.5);c4<-rbinom(N,1,.5);c5<-rbinom(N,1,.5)
+  d<-data.frame(y,x,c1,c2,c3,c4,c5)
+```
+Note that **NONE** of the variables depend on one another. In other words, there is absolutely no association between any of the variables, including $X$ and $Y$. The true odds ratio is 1. So how is it that our confidence intervals don't include the null value? The ``problem'' is actually not a problem, but stems from the fact that confidence intervals are defined in a **frequentist** statistical paradigm. The definition of a 95\% confidence interval is:
+\begin{quote}
+    The bounds that will contain the true value 95\% of the time over \underline{repeated sampling}
+\end{quote}
+That is, if we repeated the same study 100 times. We would expect that out of these 100 confidence intervals, 95 would contain the truth. The problem is we can never know if the study we actually conducted was one of the 95 that contained the truth, or the 5 that didn't.
+
+But, because we simulated our data, we can repeat \emph{this} study 100 times using the following code
+```{r,comment=NA}
+set.seed(123)
+beta<-NULL
+for(i in 1:100){
+  N<-100
+  y<-as.numeric(rnorm(N,5,1)>6.25)
+  x<-rbinom(N,1,.5)
+  c1<-rbinom(N,1,.5)
+  c2<-rbinom(N,1,.5)
+  c3<-rbinom(N,1,.5)
+  c4<-rbinom(N,1,.5)
+  c5<-rbinom(N,1,.5)
+  
+  d<-data.frame(y,x,c1,c2,c3,c4,c5)
+  
+  mod0<-summary(glm(y~x+c1+c2+c3+c4+c5,data=d,
+                    family=binomial(link="logit")))$coefficients[2,c(1,2)]
+  
+  mod1<-c(mod0[1],mod0[1]-1.96*mod0[2],mod0[1]+1.96*mod0[2])
+  names(mod1)<-c("Estimate","LCL","UCL")
+  row.names(mod1)<-NULL
+  beta<-rbind(beta,mod1)
+}
+```
+If we plot all 100 confidence intervals that result, theory suggests that five of them will not include the true value. This is indeed what we see:
+
+```{r,echo=FALSE,fig.align='center',warning=FALSE,message=FALSE}
+library(ggplot2)
+modelFrame <- data.frame(Variable = seq(1,100,1),
+                          Estimate = beta[,1],
+                          UCL = beta[,3],
+                          LCL = beta[,2])
+mFrame00<-subset(modelFrame,modelFrame$LCL==beta[1,2])
+mFrame0<-subset(modelFrame,modelFrame$LCL<=0)
+mFrame1<-subset(modelFrame,modelFrame$LCL>0&modelFrame$Variable>1)
+zp1 <- ggplot(mFrame0)
+zp1 <- zp1 + geom_hline(yintercept=0, colour="gray", lty=2)
+zp1 <- zp1 + geom_linerange(aes(x = Variable, ymin = LCL,ymax = UCL),position = position_dodge(width = 1/2))
+zp1 <- zp1 + geom_linerange(data=mFrame1,aes(x = Variable, ymin = LCL,ymax = UCL),colour="red",position = position_dodge(width = 1/2))
+zp1 <- zp1 + geom_linerange(data=mFrame00,aes(x = Variable, ymin = LCL,ymax = UCL),colour="blue",position = position_dodge(width = 1/2)) + ylab("log Risk Ratio") + xlab("Sample Number")
+zp1 <- zp1 + theme(legend.title=element_blank(),
+                   legend.position="bottom",
+                   legend.text = element_text(size = 10),
+                   legend.key = element_blank(),
+                   axis.title.x = element_text(face="bold",size=10),
+                   axis.text.x  = element_text(vjust=.5, size=10),
+                   axis.text.y  = element_text(vjust=.5, size=10),
+                   axis.title.y = element_text(face="bold",size=10),
+                   plot.margin = unit(c(1.5,1.5,1,1), "cm"),
+                   panel.border = element_rect(colour = "black", fill=NA, size=1))
+zp1
+```
+
+The blue line is the study we actually did. The red lines are the other **four** studies for which the confidence intervals did not include the null. The black lines all included the null. 
+
+The moral of the story is this: when you interpret confidence intervals, do not presume that the actual numbers are indicative of any truth. Abstractly, the mathematical bounds can be interpreted as containing the truth at a given frequency. But the actual numbers either include the truth or don't, and you won't know which it is.
+
+Next, we'll talk about an interesting feature of this analysis known as **non-collapsibility**.
