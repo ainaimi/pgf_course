@@ -1,12 +1,14 @@
 ---
 title: "Implementing the Parametric G Formula with Complex Longitudinal Data"
-author: Ashley I. Naimi, PhD
+author: Ashley I. Naimi, PhD 
+institute: University of Pittsburgh
 output:
-  pdf_document:
-    includes:
-      in_header: header.tex
-fontsize: 11pt
-geometry: margin=.75in
+  tufte::tufte_html: default
+#  pdf_document:
+#    includes:
+#      in_header: header.tex
+#fontsize: 11pt
+#xgeometry: margin=.75in
 ---
 
 
@@ -17,37 +19,43 @@ Applied health scientists are increasingly dealing with complex data structures 
 
 **Outline**
 
-\begin{itemize}
-\item Introduction to causal inference using potential outcomes
-\begin{itemize}
-\item Language and Notation
-\item Estimate, Estimand, Estimator
-\item Identifiability
-\begin{itemize}
-\item[a.] Counterfactual Consistency
-\item[b.] Excheangability
-\item[c.] Positivity
-\end{itemize}
-\item The Logic of Causal Inference
-\end{itemize}
-\item Statistical Theory Review (Short \& Pain Free)
-\begin{itemize}
-\item Law of total probability
-\end{itemize}
-\end{itemize}
+* Introduction to causal inference using potential outcomes
+* Language and Notation
+* Estimate, Estimand, Estimator
+* Identifiability
+    a. Counterfactual Consistency
+    b. Excheangability
+    c. Positivity
+* The Logic of Causal Inference
+* Statistical Theory Review (Short & Pain Free)
+* Law of total probability
 
 \newpage
 \onehalfspacing
 
 **Introduction**
 
-<p style="text-align: left;"> The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation. The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework. </p>
+The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation. The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework.
 
-A central notion in the potential outcomes framework is the idea of the counterfactual. This notion stems from the intuitive / informal practice of interpreting cause-effect relations as \underline{circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different}. 
+A central notion in the potential outcomes framework is the idea of the counterfactual. This notion stems from the intuitive / informal practice of interpreting cause-effect relations as <i>circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different </i>. 
 
-Suppose we ask: "what is the effect of smoking on CVD risk?" To answer this question, we would do a study in which we collect data on smoking ($X$), CVD risk ($Y$), and some confounders ($C$). We would enter these data into a computer, perform some calculations with the data, and obtain a number that we would interpret as the answer to our question.  
+Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number. We would then interpret this number as the answer to our question.  
 
-The problem is that the calculations performed by the computer are \underline{rigorously defined mathematical objects}. On the other hand, the \underline{english language sentence about the "effect of smoking" is ambiguous}.
+The problem is that the calculations performed by the computer are <b>rigorously defined mathematical objects</b>. On the other hand, the <b>english language sentences about, for example, the "effect of smoking" is ambiguous</b>.
+
+The "effect of smoking" can actually mean many different things. Consider these options:
+
+* All people smoke any tobacco ever versus no people smoke tobacco ever.
+* All people smoke 3 cigarettes per day versus all people smoke 2 cigarettes per day.
+* All people who have smoked any tobacco in the last 15 years cease to smoke any tobacco whatsoever.
+Similarly, "irrespective of" can also mean a number of things:
+
+* The effect of smoking on CVD risk that would be observed in a hypothetical world where smoking did not affect body mass?
+* The effect of smoking on CVD risk if everyone were set to "normal" body mass?
+* The effect of smoking on CVD risk if everyone were held at the body mass they had in the month prior to study entry?
+
+But the computer does not admit such ambiguity. Depending on several choices, including what data you collect, what type of modeling strategy you use, how you code your variables, you are telling (perhaps unknowingly) the computer which question to answer. There is therefore a potential for alot of uncertainty in the space between the English language sentences we use to convey our notions of cause-effect relations, and the computer's implementation of algorithms that result in answers to our questions. Causal inference is about clarifying this uncertainty.
+
 
 Consider a very simple scenario setting with one binary expsoure ($X$), one binary confounder ($C$), and one continuous outcome ($Y$), represented using the confounding triangle:
 \begin{center}
