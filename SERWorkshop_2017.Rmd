@@ -1,27 +1,22 @@
 ---
 title: "Implementing the Parametric G Formula with Complex Longitudinal Data"
 author: Ashley I. Naimi, PhD 
-institute: University of Pittsburgh
 output:
+  #tufte::tufte_handout: default
   tufte::tufte_html: default
-#  pdf_document:
-#    includes:
-#      in_header: header.tex
-#fontsize: 11pt
-#xgeometry: margin=.75in
 ---
 
-
 **Abstract**
-Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three ``g'' methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures. This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
+
+Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three "g" methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures.^[The other two g methods are inverse probability weighted marginal structural models, and g estimation of structural nested models] This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
 
 \newpage
 
 **Outline**
 
-* Introduction to causal inference using potential outcomes
-* Language and Notation
-* Estimate, Estimand, Estimator
+* [Introduction](#id1) 
+* [Notation](#id2)
+* [Estimate, Estimand, Estimator](#id3)
 * Identifiability
     a. Counterfactual Consistency
     b. Excheangability
@@ -33,153 +28,54 @@ Applied health scientists are increasingly dealing with complex data structures 
 \newpage
 \onehalfspacing
 
+
+<a id="id1"></a>
 **Introduction**
 
-The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation. The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework.
+The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of introductory books and articles on causal inference in the empirical sciences.] The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework.
 
-A central notion in the potential outcomes framework is the idea of the counterfactual. This notion stems from the intuitive / informal practice of interpreting cause-effect relations as <i>circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different </i>. 
+A central notion in the potential outcomes framework is the counterfactual.^[That which is counter to fact] This notion stems from the intuitive and informal practice of interpreting cause-effect relations as <i>circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different </i>. 
 
-Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number. We would then interpret this number as the answer to our question.  
+Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" To answer this question, we would collect data, enter these into a computer, perform some calculations, and obtain a number. We would then interpret this number as the answer to our question.  
 
-The problem is that the calculations performed by the computer are <b>rigorously defined mathematical objects</b>. On the other hand, the <b>english language sentences about, for example, the "effect of smoking" is ambiguous</b>.
+But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are <b>rigorously defined mathematical objects</b>. On the other hand, <b>english language sentences are ambiguous</b>.
 
-The "effect of smoking" can actually mean many different things. Consider these options:
+For example, the "effect of smoking" can mean many different things. Consider these options:
 
 * All people smoke any tobacco ever versus no people smoke tobacco ever.
 * All people smoke 3 cigarettes per day versus all people smoke 2 cigarettes per day.
 * All people who have smoked any tobacco in the last 15 years cease to smoke any tobacco whatsoever.
+
 Similarly, "irrespective of" can also mean a number of things:
 
 * The effect of smoking on CVD risk that would be observed in a hypothetical world where smoking did not affect body mass?
 * The effect of smoking on CVD risk if everyone were set to "normal" body mass?
 * The effect of smoking on CVD risk if everyone were held at the body mass they had in the month prior to study entry?
 
-But the computer does not admit such ambiguity. Depending on several choices, including what data you collect, what type of modeling strategy you use, how you code your variables, you are telling (perhaps unknowingly) the computer which question to answer. There is therefore a potential for alot of uncertainty in the space between the English language sentences we use to convey our notions of cause-effect relations, and the computer's implementation of algorithms that result in answers to our questions. Causal inference is about clarifying this uncertainty.
+But the computer does not admit such ambiguity. Depending on several choices, including what data you collect, what type of modeling strategy you use, how you code your variables, you are telling (perhaps unknowingly) the computer which question to answer. There is therefore a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms that yield answers to those questions. Causal inference is about clarifying this uncertainty.
 
+<a id="id2"></a>
+**Notation**
 
-Consider a very simple scenario setting with one binary expsoure ($X$), one binary confounder ($C$), and one continuous outcome ($Y$), represented using the confounding triangle:
-\begin{center}
-\begin{tikzpicture}[line width=0.05cm]
+The basic building blocks of the formal approach to causal inference are **potential outcomes**. These are conceptually distinct from (the more familiar) **observed outcomes**. We will get into this in more detail later. Potential outcomes are functions of exposure values. For a given exposure $X$, we will write the potential outcome as $Y_x$.^[Alternate notation includes:$Y^x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X \in (0,1)$, then $Y_x$ is the outcome that would be observed if $X=0$ or if $X=1$. If we wanted to be specific about the value of $x$, we could write $Y_{x=0}$ or $Y_{x=1}$ (or, more succinctly,  $Y_{0}$ or $Y_{1}$).^[**Study Question 1:** Suppose you collect data from a single person and find that ]
 
-\node [align=center] (x) at (0,0) {$X$};
-\node [align=center] (y) at (2.55,0) {$Y$};
-\node [align=center] (c) at (1.25,1.25) {$C$};
+We will also use conventional statistical notation. We will let capital letters denote random variables and lowercase letters denote their realizations. So, referring back to our example, $X$ refers to the entire distribution of the exposure, whereas $x$ denotes a specific value (e.g., 0 or 1). 
 
-\begin{scope}[line width=.05cm,shorten >= 5pt, shorten <= 5pt]
-\draw[->,color=black] (x) to (y);
-\draw[->,color=black] (c) to (y);
-\draw[->,color=black] (c) to (x);
-\end{scope}
-\end{tikzpicture}
-\end{center}
-Suppose we have data and want to study this relation. We fit a linear regression model as follows:
-\begin{equation}
- E( Y \mid X, C) = \beta_0 + \beta_1 X + \beta_2 C,
-\end{equation}
-and estimate $\hat{\beta}_1= 50.0$. It would be tempting to interpret this as: if everyone were exposed, the average outcome in the population would be $50.0$ units higher than the average outcome if everyone were unexposed. But notice what we (would have) done here: we entered 
+Additionally, we will use greek letters to denote parameters that we need to quantify. In particular, we will distinguish between two types of parameters: target parameter will be denoted with the greek letter $\psi$ ("psi"), and we will separate these from other parameters (termed "nuisance" parameters), which will be denoted using other greek letters (e.g., $\alpha$, $\beta$, $\gamma$, $\theta$).
 
+Target parameters quantify those things that we are specifically interested in (e.g., risk differences or ratios). Nuisance parameters represent quantities that we are not interested in. For example, when we include confounders or the propensity score in a regression model, we are not particularly interested in precisely how they relate to the outcome, but we have to estimate (nuisance) parameters for these covariates.
 
-This simple example shows some of the difficulties inherent in interpreting confidence intervals. Suppose I provide you with data on $N=100$ individuals and seven variables:
-\begin{equation*}
-  \mathcal{O} = \{Y,X,C_1,C_2,C_3,C_4,C_5\},
-\end{equation*}
-where $X$ is an exposure, $Y$ is an outcome, and $\mathbf{C}$ are confounders ($\mathcal{O}$ is used here to denote ``observed'' data). Your task is to estimate the risk ratio for the $X\rightarrow Y$ relation, and decide whether action should be taken to modify $X$ in the population (i.e., does $X$ actually effect $Y$?). In this setting, all variables are binary. Here are their means:
+<a id="id3"></a>
+**Estimand, Estimator, Estimate**
 
-```{r, echo=FALSE,comment=NA}
-  set.seed(123)
-  N<-100
-  y<-as.numeric(rnorm(N,5,1)>6.25)
-  x<-rbinom(N,1,.5)
-  c1<-rbinom(N,1,.5)
-  c2<-rbinom(N,1,.5)
-  c3<-rbinom(N,1,.5)
-  c4<-rbinom(N,1,.5)
-  c5<-rbinom(N,1,.5)
-  d<-data.frame(y,x,c1,c2,c3,c4,c5)
-  m1<-as.data.frame(summary(d)[4,])
-  names(m1)<-c(" ")
-  m1
+Causal inference starts with a clear idea of what effect we want to quantify. To do this, it helps to distinguish between three important concepts: estimands, estimators, and estimates.
+
+```{marginfigure}
+**Study Question 2a:** You are familar with the well known odds ratio equation from a $2\times 2$ table ($ab/cd$). Is this an estimand, estimator, or estimate?
 ```
-Because the outcome is binary and rare, we can use logistic regression to estimate the risk ratio. The code to do this in R is:
-```{r}
-  model1<-glm(y~x+c1+c2+c3+c4+c5,data=d,family=binomial(link="logit"))
-```
-The point estimate and standard error of the coefficient for $X$ in this model are:
-```{r,echo=FALSE,comment=NA}
-round(summary(model1)$coefficients[2,c(1,2)],1)
-```
-We can easily construct 95\% Wald confidence intervals using this information as $\exp(Estimate \pm 1.96 \times SE(Estimate))$. Applying this equation gives the following risk ratio and 95\% CIs: `r round(exp(summary(model1)$coefficients[2,1]),1)` (`r round(exp(summary(model1)$coefficients[2,c(1)]-1.96*summary(model1)$coefficients[2,c(2)]),1)`, `r round(exp(summary(model1)$coefficients[2,c(1)]+1.96*summary(model1)$coefficients[2,c(2)]),1)`), which is huge! If you treat 95\% confidence intervals as null hypothesis significance tests, and naively interpret null hypothesis significance test results, you might say that $X$ affects $Y$, and recommend that action be taken to reduce $X$ in the population so that $Y$ will also be reduced. In this case, **you would be wrong.**
-
-Why? These data were simulated from the following R code:
-```{r}
-  set.seed(123)
-  N<-100
-  y<-as.numeric(rnorm(N,5,1)>6.25);x<-rbinom(N,1,.5);c1<-rbinom(N,1,.5)
-  c2<-rbinom(N,1,.5);c3<-rbinom(N,1,.5);c4<-rbinom(N,1,.5);c5<-rbinom(N,1,.5)
-  d<-data.frame(y,x,c1,c2,c3,c4,c5)
-```
-Note that **NONE** of the variables depend on one another. In other words, there is absolutely no association between any of the variables, including $X$ and $Y$. The true odds ratio is 1. So how is it that our confidence intervals don't include the null value? The ``problem'' is actually not a problem, but stems from the fact that confidence intervals are defined in a **frequentist** statistical paradigm. The definition of a 95\% confidence interval is:
-\begin{quote}
-    The bounds that will contain the true value 95\% of the time over \underline{repeated sampling}
-\end{quote}
-That is, if we repeated the same study 100 times. We would expect that out of these 100 confidence intervals, 95 would contain the truth. The problem is we can never know if the study we actually conducted was one of the 95 that contained the truth, or the 5 that didn't.
-
-But, because we simulated our data, we can repeat \emph{this} study 100 times using the following code
-```{r,comment=NA}
-set.seed(123)
-beta<-NULL
-for(i in 1:100){
-  N<-100
-  y<-as.numeric(rnorm(N,5,1)>6.25)
-  x<-rbinom(N,1,.5)
-  c1<-rbinom(N,1,.5)
-  c2<-rbinom(N,1,.5)
-  c3<-rbinom(N,1,.5)
-  c4<-rbinom(N,1,.5)
-  c5<-rbinom(N,1,.5)
-  
-  d<-data.frame(y,x,c1,c2,c3,c4,c5)
-  
-  mod0<-summary(glm(y~x+c1+c2+c3+c4+c5,data=d,
-                    family=binomial(link="logit")))$coefficients[2,c(1,2)]
-  
-  mod1<-c(mod0[1],mod0[1]-1.96*mod0[2],mod0[1]+1.96*mod0[2])
-  names(mod1)<-c("Estimate","LCL","UCL")
-  row.names(mod1)<-NULL
-  beta<-rbind(beta,mod1)
-}
-```
-If we plot all 100 confidence intervals that result, theory suggests that five of them will not include the true value. This is indeed what we see:
-
-```{r,echo=FALSE,fig.align='center',warning=FALSE,message=FALSE}
-library(ggplot2)
-modelFrame <- data.frame(Variable = seq(1,100,1),
-                          Estimate = beta[,1],
-                          UCL = beta[,3],
-                          LCL = beta[,2])
-mFrame00<-subset(modelFrame,modelFrame$LCL==beta[1,2])
-mFrame0<-subset(modelFrame,modelFrame$LCL<=0)
-mFrame1<-subset(modelFrame,modelFrame$LCL>0&modelFrame$Variable>1)
-zp1 <- ggplot(mFrame0)
-zp1 <- zp1 + geom_hline(yintercept=0, colour="gray", lty=2)
-zp1 <- zp1 + geom_linerange(aes(x = Variable, ymin = LCL,ymax = UCL),position = position_dodge(width = 1/2))
-zp1 <- zp1 + geom_linerange(data=mFrame1,aes(x = Variable, ymin = LCL,ymax = UCL),colour="red",position = position_dodge(width = 1/2))
-zp1 <- zp1 + geom_linerange(data=mFrame00,aes(x = Variable, ymin = LCL,ymax = UCL),colour="blue",position = position_dodge(width = 1/2)) + ylab("log Risk Ratio") + xlab("Sample Number")
-zp1 <- zp1 + theme(legend.title=element_blank(),
-                   legend.position="bottom",
-                   legend.text = element_text(size = 10),
-                   legend.key = element_blank(),
-                   axis.title.x = element_text(face="bold",size=10),
-                   axis.text.x  = element_text(vjust=.5, size=10),
-                   axis.text.y  = element_text(vjust=.5, size=10),
-                   axis.title.y = element_text(face="bold",size=10),
-                   plot.margin = unit(c(1.5,1.5,1,1), "cm"),
-                   panel.border = element_rect(colour = "black", fill=NA, size=1))
-zp1
-```
-
-The blue line is the study we actually did. The red lines are the other **four** studies for which the confidence intervals did not include the null. The black lines all included the null. 
-
-The moral of the story is this: when you interpret confidence intervals, do not presume that the actual numbers are indicative of any truth. Abstractly, the mathematical bounds can be interpreted as containing the truth at a given frequency. But the actual numbers either include the truth or don't, and you won't know which it is.
-
-Next, we'll talk about an interesting feature of this analysis known as **non-collapsibility**.
+ 
+ 
+```{marginfigure}
+**Study Question 2b:** Can you think of another estimator that can be used to quantify the odds ratio? Hint: think regression.
+``` 
+ 
