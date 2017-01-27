@@ -2,39 +2,54 @@
 title: "Implementing the Parametric G Formula with Complex Longitudinal Data"
 author: Ashley I. Naimi, PhD 
 output:
-  #tufte::tufte_handout: default
-  tufte::tufte_html: default
+  tufte::tufte_handout: default
+  #tufte::tufte_html: default
 ---
 
 **Abstract**
 
-Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three "g" methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures.^[The other two g methods are inverse probability weighted marginal structural models, and g estimation of structural nested models] This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
+Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three "g" methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures. This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
 
 \newpage
 
 **Outline**
 
-* [Introduction](#id1) 
-* [Notation](#id2)
-* [Estimate, Estimand, Estimator](#id3)
-* Identifiability
-    a. Counterfactual Consistency
-    b. Excheangability
-    c. Positivity
-* The Logic of Causal Inference
-* Statistical Theory Review (Short & Pain Free)
-* Law of total probability
+Causal Inference
+\begin{itemize}
+\item Introduction
+\item Complex Longitudinal Data
+\item Notation
+\item Estimand, Estimator, Estimate
+\item Identifiability
+\begin{itemize}
+    \item[a.] Counterfactual Consistency
+    \item[b.] Excheangability
+    \item[c.] Positivity
+\end{itemize}
+\item Statistical Theory Review (Short \& Pain Free)
+\begin{itemize}
+    \item[a.] Marginal versus Conditional Effects
+    \item[b.] Law of total probability
+\end{itemize}
+\end{itemize}
+
+Preliminaries (Example 0)
+
+The Parametric G-Formula: Example 1
+
+The Parametric G-Formula: Example 2
+
+The Parametric G-Formula: Example 3
 
 \newpage
 \onehalfspacing
 
 
-<a id="id1"></a>
 **Introduction**
 
-The field of "causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of introductory books and articles on causal inference in the empirical sciences.] The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework.
+"Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by  "causal relation" or "causal effect" is the potential outcomes framework.
 
-A central notion in the potential outcomes framework is the counterfactual.^[That which is counter to fact] This notion stems from the intuitive and informal practice of interpreting cause-effect relations as <i>circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different </i>. 
+A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as <i>circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different </i>. 
 
 Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" To answer this question, we would collect data, enter these into a computer, perform some calculations, and obtain a number. We would then interpret this number as the answer to our question.  
 
@@ -52,30 +67,120 @@ Similarly, "irrespective of" can also mean a number of things:
 * The effect of smoking on CVD risk if everyone were set to "normal" body mass?
 * The effect of smoking on CVD risk if everyone were held at the body mass they had in the month prior to study entry?
 
-But the computer does not admit such ambiguity. Depending on several choices, including what data you collect, what type of modeling strategy you use, how you code your variables, you are telling (perhaps unknowingly) the computer which question to answer. There is therefore a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms that yield answers to those questions. Causal inference is about clarifying this uncertainty.
+But the computer does not admit such ambiguity.^[The first computers were called "logical machines"] Depending on several choices, including what data you collect, what type of modeling strategy you use, and how you code your variables, you are telling (perhaps unknowingly) the computer which question to answer. There is a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms we use to answer those questions. Causal inference is about clarifying this uncertainty.
 
-<a id="id2"></a>
+**Complex Longitudinal Data**
+
+This short course is about using the g formula to analyze complex longitudinal data, so let's define that here. Data are **longitudinal** when they are measured repeatedly over time.^[Another such form is when data are measured repeatedly across space. We will not be dealing with these data here.] Throughout this short course, we will be dealing with data that arise from a cohort study, with individuals sampled from a well-defined target population, and with clear study start and stop times (i.e., closed cohort). 
+
+Different scenarios can lead to longitudinal data. For example:
+\begin{itemize}
+\item[1.] if the exposure and covariates do not vary over time, but the study outcome can occur more than once
+\item[2.] if the exposure and covariates vary over time, but the study outcome can only occur once
+\item[3.] if the exposure and covariates vary over time, and the study outcome can occur more than once
+\end{itemize}
+In our shortcourse, we will be dealing with data that arise from scenario 2 (however, it is not difficult to generalize the logic to scenario 3). 
+
+The possibility of repeatedly measuring the exposure, covariates, and outcome is why we call such data "longitudinal." But why complex? Repeated measurements over time opens up the possibility of complex causal relations between past and future covariates. For example, suppose 
+
+```{r, out.width = "200px",echo=F}
+knitr::include_graphics("F1.pdf")
+```
+
 **Notation**
 
-The basic building blocks of the formal approach to causal inference are **potential outcomes**. These are conceptually distinct from (the more familiar) **observed outcomes**. We will get into this in more detail later. Potential outcomes are functions of exposure values. For a given exposure $X$, we will write the potential outcome as $Y_x$.^[Alternate notation includes:$Y^x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X \in (0,1)$, then $Y_x$ is the outcome that would be observed if $X=0$ or if $X=1$. If we wanted to be specific about the value of $x$, we could write $Y_{x=0}$ or $Y_{x=1}$ (or, more succinctly,  $Y_{0}$ or $Y_{1}$).^[**Study Question 1:** Suppose you collect data from a single person and find that ]
+The basic building blocks for causal inference are **potential outcomes**. These are conceptually distinct from (the more familiar) **observed outcomes**.^[We will get into this in more detail later.] Potential outcomes are functions of exposure values. For a given exposure $X$, we will write the potential outcome as $Y_x$.^[Alternate notation includes: $Y^x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X \in (0,1)$, then $Y_x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y_{x=0}$ or $Y_{x=1}$ (or, more succinctly,  $Y_{0}$ or $Y_{1}$).
+```{marginfigure}
+**Study Question 1:** Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed?
+```
 
-We will also use conventional statistical notation. We will let capital letters denote random variables and lowercase letters denote their realizations. So, referring back to our example, $X$ refers to the entire distribution of the exposure, whereas $x$ denotes a specific value (e.g., 0 or 1). 
+We will also use conventional statistics notation. We will let capital letters denote random variables and lowercase letters denote their realizations. So, referring back to our example, $X$ refers to the random variable (i.e., entire distribution of the exposure), whereas $x$ denotes a specific value (e.g., 0 or 1). 
 
-Additionally, we will use greek letters to denote parameters that we need to quantify. In particular, we will distinguish between two types of parameters: target parameter will be denoted with the greek letter $\psi$ ("psi"), and we will separate these from other parameters (termed "nuisance" parameters), which will be denoted using other greek letters (e.g., $\alpha$, $\beta$, $\gamma$, $\theta$).
+Additionally, we will use greek letters to denote parameters that we need to quantify. In particular, we will distinguish between two types of parameters: target causal parameters will be denoted with the greek letter $\psi$ ("psi"), and we will separate these from other parameters, which include "associational" parameters and "nuisance" parameters. These will be denoted using other greek letters (e.g., $\alpha$, $\beta$, $\gamma$, $\theta$).
 
-Target parameters quantify those things that we are specifically interested in (e.g., risk differences or ratios). Nuisance parameters represent quantities that we are not interested in. For example, when we include confounders or the propensity score in a regression model, we are not particularly interested in precisely how they relate to the outcome, but we have to estimate (nuisance) parameters for these covariates.
+Target causal parameters quantify those things that we are specifically interested in (e.g., causal risk differences or ratios). They represent contrasts of potential outcomes, and therefore they cannot be estimated directly. Associational parameters also represent differneces or ratios of interest. But they represent contrasts of observed outcomes, and can thus be estimated using data. A major goal in causal inference is to evaluate whether conditions are present that enable us to equate associational and causal parameters. Nuisance parameters represent quantities that we are not interested in. For example, when we include confounders or the propensity score in a regression model, we are not particularly interested in precisely how they relate to the outcome, but we have to estimate (nuisance) parameters for these covariates.^[When we get to the more complex examples 2 & 3, we'll need a little more notation. This will do for now.]
 
 <a id="id3"></a>
 **Estimand, Estimator, Estimate**
 
-Causal inference starts with a clear idea of what effect we want to quantify. To do this, it helps to distinguish between three important concepts: estimands, estimators, and estimates.
-
+Causal inference first starts with a clear idea of the effect of interest (the target causal parameter). To do this, it helps to distinguish between three important concepts: estimands, estimators, and estimates.
 ```{marginfigure}
-**Study Question 2a:** You are familar with the well known odds ratio equation from a $2\times 2$ table ($ab/cd$). Is this an estimand, estimator, or estimate?
+**Study Question 2a:** You are familar with the well known odds ratio equation for a $2\times 2$ table: ($ab/cd$). Is this an estimand, estimator, or estimate?
 ```
- 
- 
 ```{marginfigure}
-**Study Question 2b:** Can you think of another estimator that can be used to quantify the odds ratio? Hint: think regression.
+**Study Question 2b:** Can you think of another estimator that can be used to quantify the odds ratio?
 ``` 
+The **estimand** is the (mathematical) object we want to quantify. It is, for example, the causal risk difference, risk ratio, or odds ratio for our exposure and outcome of interest (such as the effect of any versus no smoking (ever) on CVD risk):
+
+$$ P( Y_{1} = 1) - P( Y_{0} =1 ),\;\;\;\frac{P( Y_{1} = 1)}{P( Y_{0} =1 )},\;\;\; \frac{Odds( Y_{1} = 1)}{ Odds( Y_{0} = 1)} $$
+There are a wide variety of estimands we can define for a given situation. Below, other estimands often discussed in the causal inference literature are defined.^[For the local average treatment effect (LATE), the subscript on the $X$ denotes the status of an instrumental variable. $X_1$ and $X_0$ are the exposures that would be observed if the instrument were set to 1 or 0, respectively.] Many others can be entertained as well.
+
+<table border="2">
+<tr>
+<td>Average Causal Effect:</td>
+<td>$E(Y_1 - Y_0)$</td>
+</tr>
+<tr>
+<td>Effect of Treatment on the Treated:</td>
+<td>$E(Y_1 - Y_0 \mid X=1)$</td>
+</tr>
+<tr>
+<td>Local Average Treatment Effect:</td>
+<td>$E(Y_1 - Y_0 \mid X_1-X_0=1)$</td>
+</tr>
+</table>
  
+The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including:
+\begin{itemize}
+\item Ordinary least squares
+\item Maximum likelihood
+\item Method of moments
+\item Two stage least squares
+\item Many others...
+\end{itemize}
+
+To give a specific example, let's simulate some hypothetical observational data on the relation between smoking and CVD. Furthermore, let's keep it simple and look at ordinary least squares and two versions maximum likelihood:
+```{r, echo=T,fig.star=T,tidy=F,highlight=T}
+### CODE SET 1
+# data
+expit<-function(z){
+  1/(1+exp(-(z)))
+}
+set.seed(123)
+n<-1e6
+confounder<-rbinom(n,1,.5)
+smoking<-rbinom(n,1,expit(2+log(2)*confounder))
+CVD<-rbinom(n,1,.1+.05*smoking+.05*confounder)
+
+#OLS
+coef(lm(CVD~smoking+confounder))
+
+#ML1
+coef(glm(CVD~smoking+confounder,family=poisson("identity")))
+
+#ML2
+coef(glm(CVD~smoking+confounder,family=binomial("identity")))
+### END CODE SET 1
+```
+In our simple setting with 1 million observations, ordinary least squares and maximum likelihood yielded the same associational risk difference (as expected) even though they are different **estimators**. Finally, the values obtained from each regression approach are our **estimates.**
+
+**Identifiability**
+
+In our simulation example, we estimated the associational risk difference using three different estimators. However, we can only use the associational risk difference to quantify the causal risk difference if the latter is **identified**. We say that a parameter (e.g., causal risk difference) is identified if we can write it as a function of the observed data. This notion of identifiability is central to causal inference, so I will explain it in detail. 
+
+The causal risk difference is defined as a contrast of potential outcomes:
+$$ \psi = P( Y_{1} = 1) - P( Y_{0} =1 ), $$
+where $Y_1$, $Y_0$ are the potential CVD outcomes that would be observed if smoking were set to 1 and zero, respectively. On the other hand, the associational risk difference is defined as a contrast of observed outcomes:
+$$ \alpha = P( Y = 1 \mid X = 1, C) - P( Y = 1 \mid X = 0, C), $$
+where each term in this equation is interpreted as the risk of CVD **among those who had $X=1$**.^[We will discuss the implications of conditioning on $C$ in our review of marginal versus conditional effects.] The causal risk difference is identified if the following equation holds:
+$$ P(Y_x = 1) = P(Y = 1 \mid X = x, C) $$
+In this equation, the right hand side eqution is written entirely in terms of observed data. The left hand side is a function of unobserved potential outcomes. They will only be equivalent if we can make some assumptions.
+
+The first is **counterfactual consistency**. This assumption states that the potential outcome that would have been observed if we set the exposure to the observed value is the same as their observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency assumes:
+$$\text{ if }X = x\text{ then }Y_x = Y $$
+The status of this assumption remains unaffected by the choice of analytic method (e.g., standard regression versus g methods). Rather, this assumption’s validity depends on the nature of the exposure assignment mechanism.
+
+A second assumption is **exchangeability**. Exchangeability implies that the potential outcomes under a specific exposure ($Y_x$) is independent of the actual (or observed) exposures $X$. If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure. What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
+
+A final assumption is **positivity**, which requires exposed and unexposed individuals within all levels of the confounder
+
