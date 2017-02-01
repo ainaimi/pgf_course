@@ -146,12 +146,13 @@ The estimand is the object we want to estimate. The **estimator** is an equation
 \end{itemize}
 
 To give a specific example, let's simulate some hypothetical observational data on the relation between smoking and CVD. Furthermore, let's keep it simple and look at ordinary least squares and two versions maximum likelihood:
-```{r, echo=T,fig.star=T,tidy=F,highlight=T}
-### CODE SET 1
-# data
+```{r,echo=F}
 expit<-function(z){
   1/(1+exp(-(z)))
 }
+```
+```{r, echo=T,fig.star=T,tidy=F,highlight=T}
+### CODE SET 1
 set.seed(123)
 n<-1e6
 confounder<-rbinom(n,1,.5)
@@ -207,6 +208,30 @@ In learning to use the parametric g formula, it helps to clarify some important 
 $$ E(Y = 1 \mid X, C) = \beta_0+\beta_1X+\beta_2C $$
 where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 indivduals among smokers relative to non-smokers ($\hat{\beta}_1=0.05$). 
 
-This effect is conditional on $C$, which means that we must interpret the estimate of $\beta_1$ as the effect of smoking on CDV risk **if we were to hold $C$ constant in the population**. 
+This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CDV risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that whether we "hold $C$ constant" is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
+\begin{itemize}
+\item[1.] There is no interaction between $X$ and $C$, which means the effect of $X$ is the same in each level of $C$.
+\item[2.] The model is linear (and thus collapsible), which means that marginal and conditional effects are equivalent.
+\end{itemize}
 
+The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example. Suppose we are in the same setting (CVD, smoking) with two confounders and one effect modifier:
+```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
+### CODE SET 2
+set.seed(123)
+n<-1e6
+confounder1<-rbinom(n,1,.5)
+confounder2<-rbinom(n,1,.5)
+phys_act<-rbinom(n,1,.5) #modifier
+smoking<-rbinom(n,1,expit(2+log(2)*confounder1+log(2)*confounder2))
+CVD<-rbinom(n,1,expit(-1+log(2)*smoking - log(1.5)*phys_act - log(1.25)*smoking*phys_act+log(2)*confounder1+log(2)*confounder2))
 
+# Mean Outcome
+mean(CVD)
+m1<-coef(glm(CVD~smoking+phys_act+smoking*phys_act+confounder1+confounder2,family=binomial("logit")))
+# Effect of smoking among PA = 1
+exp(m1%*%c(0,1,0,0,0,1))
+# Effect of smoking among PA = 0
+exp(m1%*%c(0,1,0,0,0,0))
+
+### END CODE SET 2
+```
