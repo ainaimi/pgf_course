@@ -11,10 +11,9 @@ output:
 Applied health scientists are increasingly dealing with complex data structures to answer questions about exposure effects and mediation. In such settings, feedback between confounders, exposures, and mediators render standard adjustment methods (regression, restriction, stratification, matching) inappropriate. The parametric g formula—one of three "g" methods—is a versatile tool that can be used to quantify a variety of exposure effects with complex data structures. This workshop will provide a comprehensive overview of the g formula for identifying and estimating causal effects. After a brief introduction to the potential outcomes framework, we will review obstacles to effect estimation and mediation analysis with complex longitudinal data. The g formula will then be introduced with three examples using actual data and software code: (i) a simple simulated analysis that minimizes technical details and emphasizes core concepts; (ii) a mediation analysis setting where interest lies in direct/indirect effects; and (iii) a complex longitudinal data setting where interest lies in estimating the total effect of an exposure measured repeatedly over many months of follow-up. The goal of this workshop will be to enable participants to implement the parametric g formula in a range of settings, to articulate and evaluate key assumptions/limitations, and to implement critical model validation techniques. No prior knowledge of causal modeling, counterfactuals, or g methods is required.
 
 \newpage
-
 \noindent {\Large \bf Outline}
-
-Causal Inference
+\vskip .25cm
+\noindent \underline{Causal Inference}
 \begin{itemize}
 \item Introduction
 \item Complex Longitudinal Data
@@ -23,16 +22,17 @@ Causal Inference
 \item Identifiability
 \begin{itemize}
     \item[a.] Counterfactual Consistency
-    \item[b.] Excheangability
-    \item[c.] Positivity
+    \item[b.] No Interference
+    \item[c.] Excheangability
+    \item[d.] Positivity
 \end{itemize}
-\item Statistical Theory Review (Short \& Pain Free)
+\item Statistical Theory Review
 \begin{itemize}
     \item[a.] Marginal versus Conditional Effects
     \item[b.] Law of Total Probability
 \end{itemize}
 \end{itemize}
-The Parametric G-Formula
+\noindent \underline{The Parametric G-Formula}
 \begin{itemize}
 \item Model-Based Standardization (Example 0)
 \item Example 1:
@@ -43,61 +43,62 @@ The Parametric G-Formula
 \newpage
 \onehalfspacing
 
-
 \noindent {\Large \bf Introduction}
 
 "Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
 
-A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different.
+A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as \underline{circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different}.
 
-While an intuitive understanding of cause-effect relations serves an important purpose, it is not sufficient for doing rigorous science. Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" This question seems clear and intiutive, and may serve as the basis of an investigation into the effects of smoking. To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number. We would then interpret this number as the answer to our question.
+While this intuition serves an important purpose, it is not sufficient for doing rigorous science. Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" This question seems clear and intiutive. To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number (the "effect").
 
-But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences are ambiguous**.
+But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences about cause effect relations are ambiguous**.
 
-For example, the "effect of smoking" can mean many different things. Consider these options:
+For example, the "effect of smoking" can mean many different things:
 \begin{itemize}
 \item All people smoke any tobacco ever versus no people smoke tobacco ever.
 \item All people smoke 3 cigarettes per day versus all people smoke 2 cigarettes per day.
 \item All people who have smoked any tobacco in the last 15 years cease to smoke any tobacco whatsoever.
 \end{itemize}
-Similarly, "irrespective of" can also mean a number of things:
+\noindent Similarly, "irrespective of" can mean a number of things:
 \begin{itemize}
 \item The effect of smoking on CVD risk that would be observed in a hypothetical world where smoking did not affect body mass?
 \item The effect of smoking on CVD risk if everyone were set to "normal" body mass?
 \item The effect of smoking on CVD risk if everyone were held at the body mass they had in the month prior to study entry?
 \end{itemize}
 
-But the computer does not admit such ambiguity.^[The first computers were called "logical machines"] Depending on several choices, including what data you collect, how you code your variables, and what type of modeling strategy you use, you are telling (perhaps unknowingly) the computer which question to answer. There is a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms we use to answer those questions. Causal inference is about clarifying this uncertainty.
+But the computer does not admit such ambiguity.^[The first computers were called "logical machines"] Depending on several choices, including the data, how variables are coded, and the modeling strategy, the computer is being told which question to answer. There is a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms we use to answer those questions. Causal inference is about clarifying this uncertainty.
 
 \noindent {\Large \bf Complex Longitudinal Data}
 
-This short course is about using the g formula to analyze complex longitudinal data, so let's define that here. Throughout this short course, we will be dealing with data that arise from a cohort study, with individuals sampled from a well-defined target population, and with clear study start and stop times (i.e., closed cohort). Data from such a cohort are **longitudinal** when they are measured repeatedly over time.^[Another such form is when data are measured repeatedly across space. We will not be dealing with these data here.]
+This short course is about complex longitudinal data, so let's define that here. We will be dealing with data from a cohort study, individuals sampled from a well-defined target population, and clear study start and stop times (i.e., closed cohort). Data from such a cohort are **longitudinal** when they are measured repeatedly over time.^[Another such form is when data are measured repeatedly across space. We will not be dealing with these data here.]
 
-Different scenarios can lead to longitudinal data. For example:
+Different scenarios can lead to longitudinal data:
 \begin{itemize}
 \item[1.] exposure and covariates do not vary over time, but the study outcome can occur more than once
 \item[2.] exposure and covariates vary over time, but the study outcome can only occur once
 \item[3.] exposure and covariates vary over time, and the study outcome can occur more than once
 \end{itemize}
-In our shortcourse, we will be dealing with data that arise from scenario 2 (however, it is not difficult to generalize the logic to scenario 3). 
-Repeated exposure, covariate, and/or outcome measurement is what leads to "longitudinal" data. But why complex? Repeated measurement over time opens up the possibility of complex causal relations between past and future covariates. For example, suppose we measure an expsoure twice over follow-up, a covariate once, and the outcome at the end of follow-up (Figure 1). If we can assume that past exposure/covariate values do not affect future exposure/covariate values (usually a very risky assumption), then we might not consider these data "complex," and can use many of the standard methods we already know to analyze these data.
+We will deal with data that from scenario 2 (however, it is not difficult to generalize the logic to scenario 3). 
+Repeated exposure, covariate, and/or outcome measurement is what leads to "longitudinal" data. 
+
+But why complex? Repeated measurement over time opens up the possibility of complex causal relations between past and future covariates. Suppose we measure an expsoure twice over follow-up, a covariate once, and the outcome at the end of follow-up (Figure 1). If we can assume that past exposure/covariate values do not affect future exposure/covariate values (usually a very risky assumption), we might not consider these data "complex," becuase we can use many standard methods we already know to analyze these data.
 ```{r, out.width = "200px",fig.cap="Longitudinal data that might not be considered `complex' because there is no feedback between exposure and covariates.",echo=F}
 knitr::include_graphics("F1.pdf")
 ```
-On the other hand, if past exposure/covariate values affect future exposure/covariate values in such a way that prior exposures or covariates confound future exposure relations (Figure 2), more advanced analytic techniques are needed. 
+On the other hand, if past exposure/covariates affect future exposure/covariates in such a way that prior exposures or covariates confound future exposures (Figure 2), more advanced analytic techniques are needed. 
 ```{r, out.width = "200px",fig.cap="The simplest kind of complex longitudinal data. Note that the exposure at time zero affects the covariate at time 1 which affects the exposure at time 1. This feedback leads to confounding of the time 1 expsoure by a covariate that is affected by the prior exposure. Analysis of these data require more general methods to  account for this complex form of confounding.",echo=F}
 knitr::include_graphics("F2.pdf")
 ```
-In this short course, we will learn how to use the parametric g formula to account for this type of complex confounding.
+In this short course, we will learn how to use the parametric g formula to account for this type of complex time-varying confounding.
 
 \noindent {\Large \bf Notation}
 
-The basic building blocks for causal inference are **potential outcomes**. These are conceptually distinct from (the more familiar) **observed outcomes**.^[We will get into this in more detail later.] Potential outcomes are functions of exposure values. For a given exposure $X$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X \in (0,1)$, then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
+The building blocks for causal inference are **potential outcomes**. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)]$, then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
 ```{marginfigure}
 **Study Question 1:** Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed?
 ```
 
-When the exposoure and/or outcome are measured repeatedly over follow-up, notation must account for that. In such a case, we use subscripts to denote when the variable was measured. For example, if the exposure is measured twice, we can denote the first measurement $X_0$ and the second $X_1$. Additionally, we use overbars to denote the history of a variable over follow-up time. For example, $\overline{X}_1$ denotes the set $\{X_0,X_1\}$. More generally, for some arbitrary point over follow-up $m$, $\overline{X}_m$ denotes $\{X_0,X_1,X_2, \ldots X_m\}$. We can then define potential outcomes as a function of these exposure histories: For two exposure measurements, $\overline{X}_j = \{1,1\}$, $Y^{\overline{x}_j = \overline{1}}$ is the outcome that would be observed if $X_0$ were set to $1$ and $X_1$ were set to $1$.
+When the exposoure and/or outcome are measured repeatedly over follow-up, notation must account for that. We thus use subscripts to denote when the variable was measured. For example, if the exposure is measured twice, we can denote the first measurement $X_0$ and the second $X_1$. Additionally, we use overbars to denote the history of a variable over follow-up time. For example, $\overline{X}_1$ denotes the set $\{X_0,X_1\}$. More generally, for some arbitrary point over follow-up $m$, $\overline{X}_m$ denotes $\{X_0,X_1,X_2, \ldots X_m\}$. We can then define potential outcomes as a function of these exposure histories: For two exposure measurements, $\overline{X}_j = \{1,1\}$, $Y^{\overline{x}_j = \overline{1}}$ is the outcome that would be observed if $X_0$ were set to $1$ and $X_1$ were set to $1$.
 
 We will also use conventional statistics notation. We will let capital letters denote random variables and lowercase letters denote their realizations. So, referring back to our example, $X$ refers to the random variable (i.e., entire distribution of the exposure), whereas $x$ denotes a specific value (e.g., 0 or 1). 
 
@@ -116,8 +117,8 @@ Causal inference first starts with a clear idea of the effect of interest (the t
 ``` 
 The **estimand** is the (mathematical) object we want to quantify. It is, for example, the causal risk difference, risk ratio, or odds ratio for our exposure and outcome of interest (such as the effect of any versus no smoking (ever) on CVD risk):
 
-$$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)} $$
-There are a wide variety of estimands we can define for a given situation. Below, other estimands often discussed in the causal inference literature are defined.^[For the local average treatment effect (LATE), the subscript on the $X$ denotes the status of an instrumental variable. $X^1$ and $X^0$ are the exposures that would be observed if the instrument were set to 1 or 0, respectively.] Many others can be entertained as well.
+$$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)}, $$
+where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are a wide variety of estimands we can define for a given situation. Below, other estimands often discussed in the causal inference literature are defined.^[For the local average treatment effect (LATE), the subscript on the $X$ denotes the status of an instrumental variable. $X^1$ and $X^0$ are the exposures that would be observed if the instrument were set to 1 or 0, respectively.] Many others can be entertained as well.
 
 <table border="2">
 <tr>
@@ -205,33 +206,55 @@ Alternatively, stochastic non-positivity arises when the sample size is not larg
 \noindent {\Large \bf Statistical Theory Review}
 
 In learning to use the parametric g formula, it helps to clarify some important statistical concepts. The first is the difference between marginal and conditional effects. In the example outlined in **Code Set 1**, we analyzed data with a binary outcome, exposure, and  confounder using a linear regression model:
-$$ E(Y = 1 \mid X, C) = \beta_0+\beta_1X+\beta_2C $$
-where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 indivduals among smokers relative to non-smokers ($\hat{\beta}_1=0.05$). 
+$$ P(Y = 1 \mid X, C) = \beta_0+\beta_1X+\beta_2C $$
+where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 individuals among smokers relative to non-smokers. Mathematically, the effect is: 
+$$\hat{P}(Y = 1 \mid X=1,C)-\hat{P}(Y = 1 \mid X=0,C)=\hat{\beta}_1=0.05.$$ 
 
-This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CDV risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that whether we "hold $C$ constant" is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
+This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CVD risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that whether we "hold $C$ constant" is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
 \begin{itemize}
 \item[1.] There is no interaction between $X$ and $C$, which means the effect of $X$ is the same in each level of $C$.
 \item[2.] The model is linear (and thus collapsible), which means that marginal and conditional effects are equivalent.
 \end{itemize}
 
-The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example. Suppose we are in the same setting (CVD, smoking) with two confounders and one effect modifier:
+To see that it doesn't matter, we can use the law of total probability to obtain the marginal risk difference:
+$$ \hat{P}(Y = 1 \mid X=1)-\hat{P}(Y = 1 \mid X=0) $$
+
+The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example to highlight some important points. Suppose we are in the same setting (CVD, smoking) with two confounders and one effect modifier:
 ```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
 ### CODE SET 2
 set.seed(123)
 n<-1e6
-confounder1<-rbinom(n,1,.5)
-confounder2<-rbinom(n,1,.5)
+confounder<-rbinom(n,1,.5)
 phys_act<-rbinom(n,1,.5) #modifier
-smoking<-rbinom(n,1,expit(2+log(2)*confounder1+log(2)*confounder2))
-CVD<-rbinom(n,1,expit(-1+log(2)*smoking - log(1.5)*phys_act - log(1.25)*smoking*phys_act+log(2)*confounder1+log(2)*confounder2))
+smoking<-rbinom(n,1,expit(2+log(2)*confounder))
+CVD<-rbinom(n,1,expit(-1+log(2)*smoking-log(1.5)*phys_act-log(1.25)*smoking*phys_act+log(2)*confounder))
 
 # Mean Outcome
 mean(CVD)
-m1<-coef(glm(CVD~smoking+phys_act+smoking*phys_act+confounder1+confounder2,family=binomial("logit")))
+m1<-coef(glm(CVD~smoking+phys_act+smoking*phys_act+confounder,family=binomial("logit")))
 # Effect of smoking among PA = 1
-exp(m1%*%c(0,1,0,0,0,1))
+exp(m1%*%c(0,1,0,0,1)) # this code is just an easy way of doing: exp(beta1+beta3)
 # Effect of smoking among PA = 0
-exp(m1%*%c(0,1,0,0,0,0))
-
+exp(m1%*%c(0,1,0,0,0)) # this code is just an easy way of doing: exp(beta1)
 ### END CODE SET 2
 ```
+In this second Code Set, there are two main differences from the previous:
+\begin{itemize}
+\item[1.] There is an effect modifier (phys\_act) of the relation bewteen smoking and CVD.
+\item[2.] The outcome, CVD, was generated from a logistic, instead of a linear model.
+\end{itemize}
+It should be clear that, in the presence of an effect modifier (let's denote it $Z$), the notion of holding $Z$ constant is much more important (the effect is different depending on the level at which we hold $Z$).
+
+Perhaps less clear is the impact of using the logistic link function. Neuhaus & Jewell (1993) showed that if you add a variable to a logistic regression model that is not associated with either the exposure or the outcome (i.e., not a confounder) the odds ratio will always move away from the null. This phenomenon, which is the result of "non-collapsibility," is why the odds ratio is a somewhat controversial measure of effect (the same is not true for the risk ratio or risk difference).
+
+If we wanted a collapsible measure like the risk ratio, we could fit another model to our data (GLM with binomial distribution and log link), but we could also obtain risk ratios directly from our logistic model. To do this, 
+
+
+
+
+
+
+
+
+
+
