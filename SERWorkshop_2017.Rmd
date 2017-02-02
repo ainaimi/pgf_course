@@ -119,11 +119,9 @@ The estimand is the object we want to estimate. The **estimator** is an equation
 \item Ordinary least squares
 \item Maximum likelihood
 \item Method of moments
-\item Two stage least squares
-\item Many others...
 \end{itemize}
 
-To give a specific example, let's simulate some hypothetical observational data on the relation between smoking and CVD. Furthermore, let's keep it simple and look at ordinary least squares and two versions maximum likelihood:
+To be specific, let's simulate some hypothetical observational data on the relation between smoking and CVD. Let's look at ordinary least squares and maximum likelihood as estimators:
 ```{r,echo=F}
 expit<-function(z){
   1/(1+exp(-(z)))
@@ -159,26 +157,21 @@ where $Y_1$, $Y_0$ are the potential CVD outcomes that would be observed if smok
 $$ \alpha = P( Y = 1 \mid X = 1, C) - P( Y = 1 \mid X = 0, C), $$
 where each term in this equation is interpreted as the risk of CVD **among those who had $X=1$**. The causal risk difference is identified if the following equation holds:^[Throughout this course, we will assume that the target parameter of interest is a causal contrast of potential outcomes. Sometimes, the target parameter of interest is an associational contrast, and the assumptions needed are less invovled. See, e.g., Naimi et al (2016) AJE.]
 $$ P(Y^x = 1 \mid C) = P(Y = 1 \mid X = x, C) $$
-In this equation, the right hand side eqution is written entirely in terms of observed data. The left hand side is a function of unobserved potential outcomes. They will only be equivalent if we can make some assumptions.
+In this equation, the right hand side equation is written entirely in terms of observed data ($Y=1$). The left hand side is a function of unobserved potential outcomes ($Y^x=1$). These functions of observed and potential outcomes will only be equivalent if we can make some assumptions.
 
-The first is **counterfactual consistency**. This assumption states that the potential outcome that would have been observed if we set the exposure to the observed value is the same as their observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
+The first is **counterfactual consistency**, which states that the potential outcome that would have been observed if we set the exposure to the observed value is the observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
 $$\text{ if }X = x\text{ then }Y^x = Y $$
 The status of this assumption remains unaffected by the choice of analytic method (e.g., standard regression versus g methods). Rather, this assumption’s validity depends on the nature of the exposure assignment mechanism.
 
-Throughout this short course, we will also assume **no interference**. This assumption states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference violations here.
+Throughout this short course, we will also assume **no interference**. This assumption states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference violations here.
 
-A third assumption is **exchangeability**. Exchangeability implies that the potential outcomes under a specific exposure ($Y^x$) is independent of the actual (or observed) exposures $X$. If this holds, then we have: 
+With counterfactual consistency and no interference, we re-write the above equation as:
+$$ P(Y^x = 1 \mid C) = P(Y^x = 1 \mid X = x, C) $$
+A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) is independent of the actual (or observed) exposures $X$. If this holds, then we have: 
 $$ P(Y^x = 1 \mid X=x, C) = P(Y^x = 1 \mid C) $$
 If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement. What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
 
-A final assumption is **positivity**, which requires exposed and unexposed individuals within all levels of the confounder. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example:
-\begin{itemize}
-\item In occupational epidemiology, when studying the effects of an occupational exposure, work status often acts as a confounder. However, when individuals are no longer at work, they cannot be exposed to the work-based exposure.
-\item In reproductive/perinatal epidemiology, when studying the effects of an \emph{in utero} exposure on a post-gestational outcome, the unit of observation (fetus/infant) can no longer be exposed once delivered. However, one will often want to adjust for the effects of being delivered earlier/later in gestation.
-\item In social epidemiology, race and wealth/income are strongly correlated such that one might encounter populations in which, for example, there are no wealthy black individuals, and/or no impoverished white individuals. 
-\end{itemize}
-
-Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with individuals in the sample. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
+A final assumption is **positivity**, which requires exposed and unexposed individuals within all levels of the confounder. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with individuals in the sample. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
 
 \noindent {\Large \bf Statistical Theory Review}
 
