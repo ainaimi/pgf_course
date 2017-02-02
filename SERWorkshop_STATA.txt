@@ -1,0 +1,22 @@
+** CODE SET 1
+
+drop _all 
+set obs 1000000
+gen confounder = rbinomial(1,.5)
+gen smoking = rbinomial(1,1/(1+exp(-(-2+log(2)*confounder))))
+gen CVD = rbinomial(1,.1+.05*smoking+.05*confounder)
+
+mean(confounder)
+mean(smoking)
+mean(CVD)
+
+* OLS
+reg CVD smoking confounder
+
+* ML1
+glm CVD smoking confounder, family(poisson) link(identity)
+
+* ML2
+glm CVD smoking confounder, family(binomial) link(identity)
+
+** END CODE SET 1

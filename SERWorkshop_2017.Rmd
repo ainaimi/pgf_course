@@ -43,6 +43,7 @@ Applied health scientists are increasingly dealing with complex data structures 
 \newpage
 \onehalfspacing
 
+\noindent {\Large \bf Section 1: Causal Inference}
 \noindent {\Large \bf Introduction}
 
 "Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
@@ -132,18 +133,31 @@ expit<-function(z){
 set.seed(123)
 n<-1e6
 confounder<-rbinom(n,1,.5)
-smoking<-rbinom(n,1,expit(2+log(2)*confounder))
+smoking<-rbinom(n,1,expit(-2+log(2)*confounder))
 CVD<-rbinom(n,1,.1+.05*smoking+.05*confounder)
 
+round(mean(confounder),3)
+round(mean(smoking),3)
+round(mean(CVD),3)
+
 #OLS
-coef(lm(CVD~smoking+confounder))
+round(coef(lm(CVD~smoking+confounder)),4)
 
 #ML1
-coef(glm(CVD~smoking+confounder,family=poisson("identity")))
+round(coef(glm(CVD~smoking+confounder,family=poisson("identity"))),4)
 
 #ML2
-coef(glm(CVD~smoking+confounder,family=binomial("identity")))
+round(coef(glm(CVD~smoking+confounder,family=binomial("identity"))),4)
 ### END CODE SET 1
+```
+```{r, echo=F}
+## for calculations below
+set.seed(123)
+n<-1e6;confounder<-rbinom(n,1,.5)
+smoking<-rbinom(n,1,expit(-2+log(2)*confounder))
+CVD<-rbinom(n,1,.1+.05*smoking+.05*confounder)
+pC<-round(mean(confounder),3)
+ols_RD<-round(coef(lm(CVD~smoking+confounder)),4)
 ```
 In our simple setting with 1 million observations, ordinary least squares and maximum likelihood yielded the same associational risk difference (as expected) even though they are different **estimators**. Finally, the values obtained from each regression approach are our **estimates.**
 
@@ -155,7 +169,7 @@ The causal risk difference is defined as a contrast of potential outcomes, in ou
 $$ \psi = P( Y^{1} = 1 \mid C) - P( Y^{0} =1 \mid C ), $$
 where $Y_1$, $Y_0$ are the potential CVD outcomes that would be observed if smoking were set to 1 and zero, respectively. On the other hand, the associational risk difference is defined as a contrast of observed outcomes:
 $$ \alpha = P( Y = 1 \mid X = 1, C) - P( Y = 1 \mid X = 0, C), $$
-where each term in this equation is interpreted as the risk of CVD **among those who had $X=1$**. The causal risk difference is identified if the following equation holds:^[Throughout this course, we will assume that the target parameter of interest is a causal contrast of potential outcomes. Sometimes, the target parameter of interest is an associational contrast, and the assumptions needed are less invovled. See, e.g., Naimi et al (2016) AJE.]
+where each term in this equation is interpreted as the risk of CVD **among those who had $X=1$**. The causal risk difference is identified if the following equation holds:^[Throughout this course, we will assume that the target parameter of interest is a causal contrast of potential outcomes. Sometimes, the target parameter of interest is an associational contrast, and the assumptions needed are less demanding. See, e.g., Naimi et al (2016) AJE.]
 $$ P(Y^x = 1 \mid C) = P(Y = 1 \mid X = x, C) $$
 In this equation, the right hand side equation is written entirely in terms of observed data ($Y=1$). The left hand side is a function of unobserved potential outcomes ($Y^x=1$). These functions of observed and potential outcomes will only be equivalent if we can make some assumptions.
 
@@ -163,7 +177,7 @@ The first is **counterfactual consistency**, which states that the potential out
 $$\text{ if }X = x\text{ then }Y^x = Y $$
 The status of this assumption remains unaffected by the choice of analytic method (e.g., standard regression versus g methods). Rather, this assumption’s validity depends on the nature of the exposure assignment mechanism.
 
-Throughout this short course, we will also assume **no interference**. This assumption states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference violations here.
+Throughout this short course, we will also assume **no interference**. This assumption states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference here.
 
 With counterfactual consistency and no interference, we re-write the above equation as:
 $$ P(Y^x = 1 \mid C) = P(Y^x = 1 \mid X = x, C) $$
@@ -177,30 +191,51 @@ A final assumption is **positivity**, which requires exposed and unexposed indiv
 
 In learning to use the parametric g formula, it helps to clarify some important statistical concepts. The first is the difference between marginal and conditional effects. In the example outlined in **Code Set 1**, we analyzed data with a binary outcome, exposure, and  confounder using a linear regression model:
 $$ P(Y = 1 \mid X, C) = \beta_0+\beta_1X+\beta_2C $$
-where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 individuals among smokers relative to non-smokers. Mathematically, the effect is: 
-$$\hat{P}(Y = 1 \mid X=1,C)-\hat{P}(Y = 1 \mid X=0,C)=\hat{\beta}_1=0.05.$$ 
+where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 individuals among smokers relative to non-smokers. Mathematically, the effect is^[We are using the results from the OLS estimator.]: 
+$$\hat{P}(Y = 1 \mid X=1,C)-\hat{P}(Y = 1 \mid X=0,C)=\hat{\beta}_1=`r ols_RD[2]`.$$ 
 
-This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CVD risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that whether we "hold $C$ constant" is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
+This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CVD risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that holding $C$ constant is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
 \begin{itemize}
 \item[1.] There is no interaction between $X$ and $C$, which means the effect of $X$ is the same in each level of $C$.
 \item[2.] The model is linear (and thus collapsible), which means that marginal and conditional effects are equivalent.
 \end{itemize}
 
-To see that it doesn't matter, we can use the law of total probability to obtain the marginal risk difference:
-$$ \hat{P}(Y = 1 \mid X=1)-\hat{P}(Y = 1 \mid X=0) $$
+To see that it doesn't matter, we can use the law of total probability to obtain the marginal risk difference that is still adjusted for the confounding effects of $C$. The law of total probability allows us to interpret our risk difference as the effect averaged over the distribution of $C$, instead of the effect if $C$ were held fixed. In our setting, the law of total probability allows us to do this:
+\begin{align*}
+P(Y=1 \mid X=x) & = \sum_C P(Y = 1 \mid X=x,C) P(C) \\
+                & = P(Y = 1 \mid X=x,C=1) P(C=1) \\
+                & \hskip .5cm + P(Y = 1 \mid X=x,C=0) P(C=0).
+\end{align*}
 
-The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example to highlight some important points. Suppose we are in the same setting (CVD, smoking) with two confounders and one effect modifier:
+In effect, the law of total probability simply allows us to take an average of $P(Y = 1 \mid X = x)$, weighted by the proportion of individuals with $C=0$ and $C=1$. To get the marginal risk difference, we apply the equation twice (one for each level of $X$). This equation is simple enough to solve by hand:
+\begin{align*}
+P(Y = 1 \mid X=1,C=1) & = \hat{\beta}_0 + \hat{\beta}_1\times 1 + \hat{\beta}_2\times 1 \\
+                      & = `r ols_RD[1]`+`r ols_RD[2]`+`r ols_RD[3]` = `r ols_RD%*%c(1,1,1)` \\
+P(C=1) & = `r pC` \\
+P(Y = 1 \mid X=1,C=0) & = \hat{\beta}_0 + \hat{\beta}_1\times 1 + \hat{\beta}_2\times 0 \\
+                      & = `r ols_RD[1]`+`r ols_RD[2]` = `r ols_RD%*%c(1,1,0)` \\
+P(C=0) & = `r 1-pC`
+\end{align*}
+The marginally adjusted risk for the exposed is thus: `r round((ols_RD%*%c(1,1,1))*pC + (ols_RD%*%c(1,1,0))*(1-pC),4)`. To calculate the marginally adjusted risk for the unexposed, we carry out the same calculations, but replace all instances of $X=1$ with $X=0$, yielding: `r round((ols_RD%*%c(1,0,1))*pC + (ols_RD%*%c(1,0,0))*(1-pC),4)`. Taking the difference gives a marginally adjusted risk difference of: `r round((ols_RD%*%c(1,1,1))*pC + (ols_RD%*%c(1,1,0))*(1-pC),4)-round((ols_RD%*%c(1,0,1))*pC + (ols_RD%*%c(1,0,0))*(1-pC),4)`, which (as expected) is identical to the conditionally adjusted risk difference.
+
+\noindent {\Large \bf Section 2: The Parametric G Formula}
+\noindent {\Large \bf Model-Based Standardization}
+
+The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example to highlight some important points. Suppose we are in the same setting (CVD, smoking) with the addition of an effect modifier:
 ```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
 ### CODE SET 2
 set.seed(123)
 n<-1e6
 confounder<-rbinom(n,1,.5)
 phys_act<-rbinom(n,1,.5) #modifier
-smoking<-rbinom(n,1,expit(2+log(2)*confounder))
-CVD<-rbinom(n,1,expit(-1+log(2)*smoking-log(1.5)*phys_act-log(1.25)*smoking*phys_act+log(2)*confounder))
+smoking<-rbinom(n,1,expit(-2+log(2)*confounder))
+CVD<-rbinom(n,1,expit(-.25+log(2)*smoking-log(1.5)*phys_act-log(1.25)*smoking*phys_act+log(2)*confounder))
 
-# Mean Outcome
-mean(CVD)
+round(mean(confounder),3)
+round(mean(smoking),3)
+round(mean(phys_act),3)
+round(mean(CVD),3)
+
 m1<-coef(glm(CVD~smoking+phys_act+smoking*phys_act+confounder,family=binomial("logit")))
 # Effect of smoking among PA = 1
 exp(m1%*%c(0,1,0,0,1)) # this code is just an easy way of doing: exp(beta1+beta3)
