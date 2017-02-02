@@ -47,7 +47,7 @@ Applied health scientists are increasingly dealing with complex data structures 
 
 "Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
 
-A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as \underline{circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different}.
+A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as **circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different**.
 
 While this intuition serves an important purpose, it is not sufficient for doing rigorous science. Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" This question seems clear and intiutive. To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number (the "effect").
 
@@ -93,7 +93,7 @@ In this short course, we will learn how to use the parametric g formula to accou
 
 \noindent {\Large \bf Notation}
 
-The building blocks for causal inference are **potential outcomes**. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)]$, then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
+The building blocks for causal inference are **potential outcomes**. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)$], then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
 ```{marginfigure}
 **Study Question 1:** Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed?
 ```
@@ -102,34 +102,19 @@ When the exposoure and/or outcome are measured repeatedly over follow-up, notati
 
 \noindent {\Large \bf Estimand, Estimator, Estimate}
 
-Causal inference first starts with a clear idea of the effect of interest (the target causal parameter). To do this, it helps to distinguish between three important concepts: estimands, estimators, and estimates.
+Causal inference starts with a clear idea of the effect of interest (the target causal parameter). To do this, it helps to distinguish between estimands, estimators, and estimates.
 ```{marginfigure}
 **Study Question 2a:** You are familar with the well known odds ratio equation for a $2\times 2$ table: ($ab/cd$). Is this an estimand, estimator, or estimate?
 ```
 ```{marginfigure}
 **Study Question 2b:** Can you think of another estimator that can be used to quantify the odds ratio?
 ``` 
-The **estimand** is the (mathematical) object we want to quantify. It is, for example, the causal risk difference, risk ratio, or odds ratio for our exposure and outcome of interest (such as the effect of any versus no smoking (ever) on CVD risk):
+The **estimand** is the (mathematical) object we want to quantify. It is, for example, the causal risk difference, risk ratio, or odds ratio for our exposure and outcome of interest. In our smoking CVD example, we might be interested in:
 
 $$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)}, $$
-where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are a wide variety of estimands we can define for a given situation. Below, other estimands often discussed in the causal inference literature are defined.^[For the local average treatment effect (LATE), the subscript on the $X$ denotes the status of an instrumental variable. $X^1$ and $X^0$ are the exposures that would be observed if the instrument were set to 1 or 0, respectively.] Many others can be entertained as well.
+where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are many others besides these.
 
-<table border="2">
-<tr>
-<td>Average Causal Effect:</td>
-<td>$E(Y^1 - Y^0)$</td>
-</tr>
-<tr>
-<td>Effect of Treatment on the Treated:</td>
-<td>$E(Y^1 - Y^0 \mid X=1)$</td>
-</tr>
-<tr>
-<td>Local Average Treatment Effect:</td>
-<td>$E(Y^1 - Y^0 \mid X^1-X^0=1)$</td>
-</tr>
-</table>
-
-With repeated measurements, more complex estimands are possible. For example, we can ask what the effect of an exposure would be if individuals were exposed at some points in time but not others. Alternatively, we can define time-specific effects, and average them over follow-up.^[One example of such time-specific effects include the "blip-function," first defined by Robins (1989), which are encoded via structural nested models] There are a number of ways in which we might define an estimand for a given analysis. One priciple that should guide our choice is: whatever action you would like to implement to improve health in a population should correspond precisely to the chosen estimand. 
+With repeated measurements, more complex estimands are possible. For example, we can ask what the effect of an exposure would be if individuals were exposed at some points in time but not others. Alternatively, we can define time-specific effects, and average them over follow-up.^[One example of such time-specific effects include the "blip-function," first defined by Robins (1989), which are encoded via structural nested models] There are a number of ways in which we might define an estimand for a given analysis. One principle that should guide our choice is: whatever action you would like to implement to improve health in a population should correspond precisely to the chosen estimand. 
 
 The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including:
 \begin{itemize}
