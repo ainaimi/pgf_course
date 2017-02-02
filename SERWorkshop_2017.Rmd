@@ -114,8 +114,6 @@ The **estimand** is the (mathematical) object we want to quantify. It is, for ex
 $$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)}, $$
 where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are many others besides these.
 
-With repeated measurements, more complex estimands are possible. For example, we can ask what the effect of an exposure would be if individuals were exposed at some points in time but not others. Alternatively, we can define time-specific effects, and average them over follow-up.^[One example of such time-specific effects include the "blip-function," first defined by Robins (1989), which are encoded via structural nested models] There are a number of ways in which we might define an estimand for a given analysis. One principle that should guide our choice is: whatever action you would like to implement to improve health in a population should correspond precisely to the chosen estimand. 
-
 The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including:
 \begin{itemize}
 \item Ordinary least squares
