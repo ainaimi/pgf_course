@@ -1,5 +1,5 @@
 ---
-title: "Implementing the Parametric G Formula with Complex Longitudinal Data"
+title: "Introduction to the Parametric G Formula"
 author: Ashley I. Naimi, PhD 
 output:
   tufte::tufte_handout: default
@@ -26,7 +26,7 @@ Applied health scientists are increasingly dealing with complex data structures 
     \item[c.] Excheangability
     \item[d.] Positivity
 \end{itemize}
-\item Statistical Theory Review
+\item Statistical Review
 \begin{itemize}
     \item[a.] Marginal versus Conditional Effects
     \item[b.] Law of Total Probability
@@ -43,7 +43,8 @@ Applied health scientists are increasingly dealing with complex data structures 
 \newpage
 \onehalfspacing
 
-\noindent {\Large \bf Section 1: Causal Inference}
+\noindent {\Large \bf \underline{Causal Inference}}
+
 \noindent {\Large \bf Introduction}
 
 "Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
@@ -52,9 +53,8 @@ A central notion in the potential outcomes framework is the counterfactual. This
 
 While this intuition serves an important purpose, it is not sufficient for doing rigorous science. Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" This question seems clear and intiutive. To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number (the "effect").
 
-But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences about cause effect relations are ambiguous**.
+But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences about cause effect relations are ambiguous**. For example, the "effect of smoking" can mean many different things:
 
-For example, the "effect of smoking" can mean many different things:
 \begin{itemize}
 \item All people smoke any tobacco ever versus no people smoke tobacco ever.
 \item All people smoke 3 cigarettes per day versus all people smoke 2 cigarettes per day.
@@ -80,9 +80,9 @@ Different scenarios can lead to longitudinal data:
 \item[3.] exposure and covariates vary over time, and the study outcome can occur more than once
 \end{itemize}
 We will deal with data that from scenario 2 (however, it is not difficult to generalize the logic to scenario 3). 
-Repeated exposure, covariate, and/or outcome measurement is what leads to "longitudinal" data. 
+Repeated exposure, covariate, and/or outcome measurement is what leads to "longitudinal" data. But why complex? 
 
-But why complex? Repeated measurement over time opens up the possibility of complex causal relations between past and future covariates. Suppose we measure an expsoure twice over follow-up, a covariate once, and the outcome at the end of follow-up (Figure 1). If we can assume that past exposure/covariate values do not affect future exposure/covariate values (usually a very risky assumption), we might not consider these data "complex," becuase we can use many standard methods we already know to analyze these data.
+Repeated measurement over time opens up the possibility of complex causal relations between past and future covariates. Suppose we measure an expsoure twice over follow-up, a covariate once, and the outcome at the end of follow-up (Figure 1). If we can assume that past exposure/covariate values do not affect future exposure/covariate values (usually a very risky assumption), we might not consider these data "complex," becuase we can use many standard methods we already know to analyze these data.
 ```{r, out.width = "200px",fig.cap="Longitudinal data that might not be considered `complex' because there is no feedback between exposure and covariates.",echo=F}
 knitr::include_graphics("F1.pdf")
 ```
@@ -115,12 +115,7 @@ The **estimand** is the (mathematical) object we want to quantify. It is, for ex
 $$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)}, $$
 where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are many others besides these.
 
-The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including:
-\begin{itemize}
-\item Ordinary least squares
-\item Maximum likelihood
-\item Method of moments
-\end{itemize}
+The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including ordinary least squares, maximum likelihood, or the method of moments.
 
 To be specific, let's simulate some hypothetical observational data on the relation between smoking and CVD. Let's look at ordinary least squares and maximum likelihood as estimators:
 ```{r,echo=F}
@@ -163,35 +158,35 @@ In our simple setting with 1 million observations, ordinary least squares and ma
 
 \noindent {\Large \bf Identifiability}
 
-In our simulation example, we estimated the associational risk difference using three different estimators. However, we can only use the associational risk difference to quantify the causal risk difference if the latter is **identified**. We say that a parameter (e.g., causal risk difference) is identified if we can write it as a function of the observed data. This notion of identifiability is central to causal inference, so I will explain it in detail. 
+In our simulation example, we estimated the associational risk difference using three different estimators. Estimating associations is really all we can do with empirical data. But we want to use the associational risk difference to quantify the causal risk difference. We can only do so if the causal risk difference is **identified**. A parameter (e.g., causal risk difference) is identified if we can write it as a function of the observed data.
 
-The causal risk difference is defined as a contrast of potential outcomes, in our case, conditional on $C$:
-$$ \psi = P( Y^{1} = 1 \mid C) - P( Y^{0} =1 \mid C ), $$
-where $Y_1$, $Y_0$ are the potential CVD outcomes that would be observed if smoking were set to 1 and zero, respectively. On the other hand, the associational risk difference is defined as a contrast of observed outcomes:
-$$ \alpha = P( Y = 1 \mid X = 1, C) - P( Y = 1 \mid X = 0, C), $$
-where each term in this equation is interpreted as the risk of CVD **among those who had $X=1$**. The causal risk difference is identified if the following equation holds:^[Throughout this course, we will assume that the target parameter of interest is a causal contrast of potential outcomes. Sometimes, the target parameter of interest is an associational contrast, and the assumptions needed are less demanding. See, e.g., Naimi et al (2016) AJE.]
+The causal risk difference is defined as a contrast of potential outcomes. Referring back to our simulated example, we want to estimate the causal risk difference conditional on $C$:
+$$ P( Y^{1} = 1 \mid C) - P( Y^{0} =1 \mid C ), $$
+where $Y^1$, $Y^0$ are the potential CVD outcomes that would be observed if smoking were set to 1 and 0, respectively. On the other hand, the associational risk difference is defined as a contrast of observed outcomes:
+$$ P( Y = 1 \mid X = 1, C) - P( Y = 1 \mid X = 0, C), $$
+where each term in this equation is interpreted as the risk of CVD **among those who had $X=x$**. The causal risk difference is identified if the following equation holds:^[Throughout this course, we will assume that the target parameter of interest is a causal contrast of potential outcomes. Sometimes, the target parameter of interest is an associational contrast, and the assumptions needed are less demanding. See, e.g., Naimi et al (2016) AJE.]
 $$ P(Y^x = 1 \mid C) = P(Y = 1 \mid X = x, C) $$
-In this equation, the right hand side equation is written entirely in terms of observed data ($Y=1$). The left hand side is a function of unobserved potential outcomes ($Y^x=1$). These functions of observed and potential outcomes will only be equivalent if we can make some assumptions.
+which says that the risk of CVD that would be observed if everyone were set to $X=x$ is equal to the risk of CVD that we observe among those with $X=x$. In this equation, the right hand side equation is written entirely in terms of observed data ($Y=1$). The left hand side is a function of unobserved potential outcomes ($Y^x=1$). This equivalence will only hold if we can make some assumptions.
 
-The first is **counterfactual consistency**, which states that the potential outcome that would have been observed if we set the exposure to the observed value is the observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
+The first is **counterfactual consistency**, which states that the potential outcome that would be observed if we set the exposure to the observed value is the observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
 $$\text{ if }X = x\text{ then }Y^x = Y $$
 The status of this assumption remains unaffected by the choice of analytic method (e.g., standard regression versus g methods). Rather, this assumption’s validity depends on the nature of the exposure assignment mechanism.
 
-Throughout this short course, we will also assume **no interference**. This assumption states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference here.
+We must also assume **no interference**, which states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference here.
 
-With counterfactual consistency and no interference, we re-write the above equation as:
-$$ P(Y^x = 1 \mid C) = P(Y^x = 1 \mid X = x, C) $$
-A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) is independent of the actual (or observed) exposures $X$. If this holds, then we have: 
+Together, counterfactual consistency and no interference allow us to make some progress in writing the potential risk $P(Y^x = 1 \mid C)$ as a function of the observed risk P(Y = 1 \mid X=x, C). Specifically, by counterfactual consistency and no interference, we can do the following:
+$$ P( Y = 1 \mid X = x, C) = P(Y^x = 1 \mid X = x, C) $$
+A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) are independent of the observed exposures $X$. If this holds, then we have: 
 $$ P(Y^x = 1 \mid X=x, C) = P(Y^x = 1 \mid C) $$
 If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement. What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
 
-A final assumption is **positivity**, which requires exposed and unexposed individuals within all levels of the confounder. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with individuals in the sample. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
+Although it seems that we have successfully written the potential risk as a function of the observed data, we are in need of one more assumption. **Positivity**^[Also known as the experimental treatment assignment assumption.] requires exposed and unexposed individuals within all levels of the confounder. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with individuals in the sample. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
 
 \noindent {\Large \bf Statistical Theory Review}
 
 In learning to use the parametric g formula, it helps to clarify some important statistical concepts. The first is the difference between marginal and conditional effects. In the example outlined in **Code Set 1**, we analyzed data with a binary outcome, exposure, and  confounder using a linear regression model:
-$$ P(Y = 1 \mid X, C) = \beta_0+\beta_1X+\beta_2C $$
-where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 individuals among smokers relative to non-smokers. Mathematically, the effect is^[We are using the results from the OLS estimator.]: 
+$$ P(Y = 1 \mid X, C) = \beta_0 + \beta_1 X + \beta_2 C $$
+where $Y$ is CVD status, $X$ is smoking status, and $C$ is the confounder. We used different estimators to quantify the parameters $\beta_0,\beta_1$ and $\beta_2$, and estimated a risk difference of 5 excess CVD events per 100 individuals among smokers relative to non-smokers. Expressed mathematically, the effect is:^[We are using the results from the OLS estimator.] 
 $$\hat{P}(Y = 1 \mid X=1,C)-\hat{P}(Y = 1 \mid X=0,C)=\hat{\beta}_1=`r ols_RD[2]`.$$ 
 
 This effect is conditional on $C$, which means that the estimate of $\beta_1$ is the effect of smoking on CVD risk **if we were to hold $C$ constant in the population**. But what if we didn't want to have to interpret it as the effect if we held $C$ constant?^[Don't be mis-lead by the simplicity of this example. It might be clear to you that holding $C$ constant is of little consequence here. This may happen in practice, but will not always be the case] As it turns out, it does not make a difference in this case for two reasons:
@@ -200,14 +195,14 @@ This effect is conditional on $C$, which means that the estimate of $\beta_1$ is
 \item[2.] The model is linear (and thus collapsible), which means that marginal and conditional effects are equivalent.
 \end{itemize}
 
-To see that it doesn't matter, we can use the law of total probability to obtain the marginal risk difference that is still adjusted for the confounding effects of $C$. The law of total probability allows us to interpret our risk difference as the effect averaged over the distribution of $C$, instead of the effect if $C$ were held fixed. In our setting, the law of total probability allows us to do this:
+To see that it doesn't matter, we can use the law of total probability to obtain the marginal risk difference that is still adjusted for the confounding effects of $C$. We can then interpret our risk difference as the effect averaged over the distribution of $C$, instead of the effect if $C$ were held fixed.^[More familiar to epidemiologists is the notion of standardizing the effect to the distribution of $C$ in some population. Using the law of total probability as we are allows us to standardize our effect to the total population.] In our setting, the law of total probability allows us to do this:
 \begin{align*}
 P(Y=1 \mid X=x) & = \sum_C P(Y = 1 \mid X=x,C) P(C) \\
                 & = P(Y = 1 \mid X=x,C=1) P(C=1) \\
                 & \hskip .5cm + P(Y = 1 \mid X=x,C=0) P(C=0).
 \end{align*}
 
-In effect, the law of total probability simply allows us to take an average of $P(Y = 1 \mid X = x)$, weighted by the proportion of individuals with $C=0$ and $C=1$. To get the marginal risk difference, we apply the equation twice (one for each level of $X$). This equation is simple enough to solve by hand:
+In effect, the law of total probability simply allows us to take an average of $P(Y = 1 \mid X = x)$, weighted by the proportion of individuals with $C=0$ and $C=1$. To get the marginal risk difference, we apply the equation twice (one for each level of $X$), which is simple enough to do by hand. For the exposed, we have:
 \begin{align*}
 P(Y = 1 \mid X=1,C=1) & = \hat{\beta}_0 + \hat{\beta}_1\times 1 + \hat{\beta}_2\times 1 \\
                       & = `r ols_RD[1]`+`r ols_RD[2]`+`r ols_RD[3]` = `r ols_RD%*%c(1,1,1)` \\
@@ -218,10 +213,13 @@ P(C=0) & = `r 1-pC`
 \end{align*}
 The marginally adjusted risk for the exposed is thus: `r round((ols_RD%*%c(1,1,1))*pC + (ols_RD%*%c(1,1,0))*(1-pC),4)`. To calculate the marginally adjusted risk for the unexposed, we carry out the same calculations, but replace all instances of $X=1$ with $X=0$, yielding: `r round((ols_RD%*%c(1,0,1))*pC + (ols_RD%*%c(1,0,0))*(1-pC),4)`. Taking the difference gives a marginally adjusted risk difference of: `r round((ols_RD%*%c(1,1,1))*pC + (ols_RD%*%c(1,1,0))*(1-pC),4)-round((ols_RD%*%c(1,0,1))*pC + (ols_RD%*%c(1,0,0))*(1-pC),4)`, which (as expected) is identical to the conditionally adjusted risk difference.
 
-\noindent {\Large \bf Section 2: The Parametric G Formula}
-\noindent {\Large \bf Model-Based Standardization}
+\noindent {\Large \bf \underline{The Parametric G Formula}}
 
-The distinction between marginal and conditional effects is important when it comes to the g formula, so let's simulate a more complex example to highlight some important points. Suppose we are in the same setting (CVD, smoking) with the addition of an effect modifier:
+\noindent {\Large \bf Example 0: Model-Based Standardization}
+
+You may wonder why used the law of total probability to get a marginally adjusted risk difference that was exactly the same as the conditionally adjusted risk difference. There are several good reasons. Sometimes, marginal and conditional effects will be different, and it will be important to quantify both. Additionally, sometimes conditional effects will be easier to estimate, but we want to interpret our effects marginally. Moreover, there will be occasions where conditional adjustment will actually lead to biased effect estimation, and our best recourse will be to use a marginal adjustment strategy. And, perhaps most importantly, once you understand the law of total probability, you understand the most important part of the g formula.
+
+The distinction between marginal and conditional effects is so important when it comes to the g formula, we will simulate a more complex example to highlight some important points. Suppose we are in the same setting (CVD, smoking):
 ```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
 ### CODE SET 2
 set.seed(123)
@@ -236,11 +234,11 @@ round(mean(smoking),3)
 round(mean(phys_act),3)
 round(mean(CVD),3)
 
-m1<-coef(glm(CVD~smoking+phys_act+smoking*phys_act+confounder,family=binomial("logit")))
+logistic_model<-glm(CVD~smoking+phys_act+smoking*phys_act+confounder,family=binomial("logit"))
 # Effect of smoking among PA = 1
-exp(m1%*%c(0,1,0,0,1)) # this code is just an easy way of doing: exp(beta1+beta3)
+exp(coef(logistic_model)%*%c(0,1,0,0,1)) # this code is just an easy way of doing: exp(beta1+beta3)
 # Effect of smoking among PA = 0
-exp(m1%*%c(0,1,0,0,0)) # this code is just an easy way of doing: exp(beta1)
+exp(coef(logistic_model)%*%c(0,1,0,0,0)) # this code is just an easy way of doing: exp(beta1)
 ### END CODE SET 2
 ```
 In this second Code Set, there are two main differences from the previous:
@@ -250,9 +248,64 @@ In this second Code Set, there are two main differences from the previous:
 \end{itemize}
 It should be clear that, in the presence of an effect modifier (let's denote it $Z$), the notion of holding $Z$ constant is much more important (the effect is different depending on the level at which we hold $Z$).
 
-Perhaps less clear is the impact of using the logistic link function. Neuhaus & Jewell (1993) showed that if you add a variable to a logistic regression model that is not associated with either the exposure or the outcome (i.e., not a confounder) the odds ratio will always move away from the null. This phenomenon, which is the result of "non-collapsibility," is why the odds ratio is a somewhat controversial measure of effect (the same is not true for the risk ratio or risk difference).
+Perhaps less clear is the impact of using the logistic link function. Neuhaus & Jewell (1993) showed that if you add a variable to a logistic regression model that is not associated with either the exposure or the outcome (i.e., not a confounder) the odds ratio will always move away from the null. This phenomenon, the result of "non-collapsibility," is why the odds ratio is a somewhat controversial measure of effect (the same is not true for the risk ratio or risk difference).
 
-If we wanted a collapsible measure like the risk ratio, we could fit another model to our data (GLM with binomial distribution and log link), but we could also obtain risk ratios directly from our logistic model. To do this, 
+We can actually use marginal standardization to obtain a number of different effect estimates from the logistic model we used to estimate the odds ratio in Code Set 2. Our basic objective would be to obtain standardized risks from the logistic model. This includes the risk of CVD for smokers and non-smokers:
+\begin{itemize}
+\item[1] among those who are physically active
+\item[2] among those who are not physically active
+\item[3] averaged over the distribution of physically active and inactive individuals in the population
+\end{itemize}
+
+We can then use these risks to quantify differences, ratios, or odds. Additionally, instead of computing these risks by hand as we did for Code Set 1, we can implement the law of total probability via predictions from our logistic model directly from our software programs (which would be much closer to how we would do this in more complex practical settings). Here's how we could quantify these risks:
+
+
+```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
+### CODE SET 3
+pFunc<-function(a){
+    new_dat<-data.frame(subset(cbind(smoking,phys_act,confounder),smoking==1&phys_act==a))
+    p1<-predict(logistic_model,new_dat,type="response")
+    new_dat<-data.frame(subset(cbind(smoking,phys_act,confounder),smoking==0&phys_act==a))
+    p2<-predict(logistic_model,new_dat,type="response")
+    #Risk Difference
+    RD<-mean(p1)-mean(p2)
+    #Risk Ratio
+    RR<-mean(p1)/mean(p2)
+    #Odds Ratio
+    OR<-(mean(p1)/(1-mean(p1)))/(mean(p2)/(1-mean(p2)))
+    return(c(round(RD,3),round(RR,2),round(OR,2)))
+}
+pFunc(1)
+pFunc(0)
+
+# why is subsetting different from using all data?
+
+pFunc<-function(a,b){
+    J1<-rep(1,n);J0<-rep(0,n)
+    new_dat<-data.frame(smoking=J1,phys_act=a,confounder=b)
+    p1<-predict(logistic_model,new_dat,type="response")
+    # predict risk among non-smokers with phys_act = 1
+    new_dat<-data.frame(smoking=J0,phys_act=a,confounder=b)
+    p2<-predict(logistic_model,new_dat,type="response")
+    #Risk Difference
+    RD<-mean(p1)-mean(p2)
+    #Risk Ratio
+    RR<-mean(p1)/mean(p2)
+    #Odds Ratio
+    OR<-(mean(p1)/(1-mean(p1)))/(mean(p2)/(1-mean(p2)))
+    return(c(round(RD,3),round(RR,2),round(OR,2)))
+}
+pFunc(phys_act,confounder)
+pFunc(1,confounder)
+pFunc(0,confounder)
+
+pFunc(phys_act,1)
+pFunc(1,1)
+pFunc(0,1)
+
+### END CODE SET 3
+```
+
 
 
 
