@@ -185,81 +185,19 @@ Although it seems that we have successfully written the potential risk as a func
 
 \noindent {\Large \bf \underline{The Parametric G Formula}}
 
+In this section, we will illustrate implementation of the parametric g formula using four examples with simulated and empirical data. The first will be a very simple setting with one exposure, one confounder, and one outcome. This example will demonstrate the process behind model-based standardization, which is essentially what the parametric g formula does with complex longitudinal data. However, the data from the first example are neither complex nor longitudinal. 
+
+The second example will be identical to the first, with a time-varying exposure measured twice, and a time-varying confounder measured once. This is the simplest complex longitudinal data scenario in which one can implement the g formula, and we will use it to emphasize core concepts. 
+
+The third example will be the first using actual empirical data. We will take the same basic procedures introduced in the first two examples, and apply them in a more complex setting. The added complexity comes from the fact that we will be using actual data (from the National Survey of Family Growth), and that we will be answering questions about causal mediation.
+
+Our final example will be the most complex. We will use data based on a randomized trial of daily low dose aspirin on pregnancy outcomes. We will deal with multiple time-points, and multiple competing outcomes. I will show you how to tailor implementation of the the g formula to a given study design.
+
+Each example will be divided into four stages: Setup, Implementation, Validation, and Interpretation. The setup stage, will be about what you need to write down and organize to implement the parametric g formula. In the implementation stage, I will show you what models you need to fit based on the setup. After fitting these models, we need to evaluate quality. I will show you how to do this in the validation stage. Finally, once we obtain results, we must interpret in light of the assumptions we covered in the previous section. We will use each example to do this.  
+
 \noindent {\Large \bf Example 0: Model-Based Standardization}
 
-The law of total probability is central to the g formula, so let's use it with a difference example. Suppose we are in the same setting (CVD, smoking):
-```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
-### CODE SET 2
-set.seed(123)
-n<-1e6
-confounder<-rbinom(n,1,.5)
-smoking<-rbinom(n,1,expit(-2+log(2)*confounder))
-CVD<-rbinom(n,1,expit(-.4+log(2)*smoking+log(2)*confounder))
 
-round(mean(confounder),3)
-round(mean(smoking),3)
-round(mean(CVD),3)
-
-logistic_model<-glm(CVD~smoking+confounder,family=binomial("logit"))
-# Effect of smoking
-OR_c<-round(exp(coef(logistic_model)%*%c(0,1,0)),2) # this code is just an easy way of doing: exp(beta1)
-OR_c
-
-logbinomial_model<-glm(CVD~smoking+confounder,family=binomial("log"))
-RR_c<-round(exp(coef(logbinomial_model)%*%c(0,1,0)),2) # this code is just an easy way of doing: exp(beta1)
-RR_c
-
-linear_model<-glm(CVD~smoking+confounder,family=binomial("identity"))
-RD_c<-round(coef(linear_model)%*%c(0,1,0),2) # this code is just an easy way of doing: exp(beta1)
-RD_c
-
-### END CODE SET 2
-```
-The main difference between this and the previous code set is that the outcome is simulated and analyzed from a logistic model, with 50% CVD proportion.^[This was to demonstrate non-collapsibility, not to strive for realism.] In this example, the **conditionally adjusted odds ratio** for the effect of smoking on CVD is `r OR_c`.
-
-Let's use the law of total probability to obtain a marginally adjusted effect estimate from the logistic model in Code Set 2. As in the first example, our objective is to obtain standardized risks from the logistic model of CVD for smokers and non-smokers. We can then use these risks to quantify differences, risk ratios, or odds ratios. 
-
-Instead of computing these risks by hand as we did for Code Set 1, we can implement the law of total probability via model predictions (which would be much closer to how we would do this in more complex practical settings). To do this, we need to model each varaible that we will marginalize over (in our case, the confounder), as well as the outcome:
-```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
-### CODE SET 3
-# fit the models
-logistic_model<-glm(CVD~smoking+confounder,family=binomial("logit"))
-confounder_model<-glm(confounder~1,family=binomial("logit"))
-```
-\noindent We can then obtain predicted probabilities of CVD and the confounder under smoking = 1 and smoking = 0:
-```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
-# predict probabilities for CVD and the confounder under smoking=1
-new_dat<-data.frame(smoking=1,confounder)
-pCVD1<-predict(logistic_model,new_dat,type="response")
-pC1<-predict(confounder_model,new_dat,type="response")
-
-# predict probabilities for CVD and the confounder under smoking=0
-new_dat<-data.frame(smoking=0,confounder)
-pCVD2<-predict(logistic_model,new_dat,type="response")
-pC2<-predict(confounder_model,new_dat,type="response")
-```
-\noindent To take a weighted average, we can multiply the predicted probabilities for smoking=0 and smoking=1, separately:
-```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
-# multiply the predicted probabilities
-p1<-pCVD1*pC1
-p2<-pCVD2*pC2
-```
-\noindent take the average of their products, and contrast them to obtain risk differences, risk ratios, or odds ratios:
-```{r, echo=T,fig.star=T,tidy=T,highlight=T,tidy.opts=list(width.cutoff=80)}
-#Risk Difference
-RD_m<-round(mean(p1)-mean(p2),3)
-#Risk Ratio
-RR_m<-round(mean(p1)/mean(p2),2)
-#Odds Ratio
-OR_m<-round((mean(p1)/(1-mean(p1)))/(mean(p2)/(1-mean(p2))),2)
-### END CODE SET 3
-```
-
-Notice that while the conditionally adjusted odds ratio is `r OR_c`, the marginally adjusted odds ratio is `r OR_m`. This difference between the conditionally and marginally adjusted odds ratios is due to non-collapsibility.^[@Neuhaus1993 showed that if you add a variable to a logistic regression model that is not associated with either the exposure or the outcome (i.e., not a confounder) the odds ratio will always move away from the null. This is becuase the odds ratio is "non-collapsible". If the variable added to the model is a confounder, then the exposure association will change for two reasons: a reduction in confounding and non-collapsibility. This one reason that the odds ratio is a controversial measure of effect (the same is not true for the risk ratio or risk difference).]
-
-Let's review some key features of how we marginally standardized the odds ratio in the second example. First, we fit a logistic regression model for the outcome, and an intercept only logistic regression model for the confounder. Second, we obtained predictions from the outcome model under two scenarios: smoking = 1 and smoking = 0. We also obtained predictions from the confounder model under the "natural" scenario (i.e., simple predictions). Third, we combined these predictions (multiplied) to obtain the marginally standardized risks of CVD. Finally, we contrasted the marginally standardized risks to obtain risk differences, risk ratios, and odds ratios. Becuase we used regression models to obtain standardized risks, we call this procedure model-based standardization.
-
-These key features are the basic elements needed to implement the parametric g formula. However, in the first two examples we used data that was neither complex or longitudinal.
 
 \noindent {\Large \bf Example 1: ART effect on CD4 Count (Simulated)}
 
