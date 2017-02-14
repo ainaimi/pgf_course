@@ -1,5 +1,10 @@
-** CODE SET 1
+program mean
+	summarize ‘1’, meanonly
+	display " mean = " r(mean)
+end
 
+
+** CODE SET 1
 drop _all 
 set obs 1000000
 gen confounder = rbinomial(1,.5)
@@ -20,3 +25,61 @@ glm CVD smoking confounder, family(poisson) link(identity)
 glm CVD smoking confounder, family(binomial) link(identity)
 
 ** END CODE SET 1
+
+
+
+** CODE SET 2
+* arrange into long datainput c a y n0 0 94.3 3440520 1 119.2 1545681 0 130.6 1545601 1 155.7 346820endexpand n
+
+mean y*** END CODE SET 2
+
+*** CODE SET 3* fit modelsglm c , family(binomial) link(logit)predict pC
+
+glm a c, family(binomial) link(logit)
+gen pA = 1/(1+exp(-(_b[_cons]+_b[c]*pC)))
+
+glm y a c, family(gaussian) link(identity)
+gen pY = _b[_cons] + _b[a]*pA + _b[c]*pC
+
+* compute marginal mean of predicted Y
+mean pY*** END CODE SET 3
+
+
+*** CODE SET 4
+glm y a c, family(gaussian) link(identity)gen pY_1 = _b[_cons] + _b[a]*1 + _b[c]*pC
+gen pY_0 = _b[_cons] + _b[a]*0 + _b[c]*pCgen diff = pY_1 - pY_0mean pY_1 pY_0 diff*** END CODE SET 4
+
+*** CODE SET 5input a0 z1 a1 y n0 0 0  87.288 2092710 0 1 112.107 937790 1 0 119.654 606570 1 1 144.842 1362931 0 0 105.282 1347811 0 1 130.184 607891 1 0 137.720 939031 1 1 162.832 210527end
+
+expand nmean y*** END CODE SET 5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
