@@ -28,17 +28,20 @@ Applied health scientists are increasingly dealing with complex data structures 
     \item[a.] Counterfactual Consistency
     \item[b.] No Interference
     \item[c.] Excheangability
-    \item[d.] Positivity
+    \item[d.] Correct Model Specification
+    \item[e.] Positivity
 \end{itemize}
-\item Statistical Review
-\begin{itemize}
-    \item[a.] Marginal versus Conditional Effects
-    \item[b.] Law of Total Probability
-\end{itemize}
+
 \end{itemize}
 \noindent \underline{The Parametric G-Formula}
 \begin{itemize}
 \item Model-Based Standardization (Example 0)
+\begin{itemize}
+\item Setup
+\item Implementation
+\item Validation
+\item Interpretation
+\end{itemize}
 \item Example 1:
 \item Example 2:
 \item Example 3:
@@ -51,13 +54,13 @@ Applied health scientists are increasingly dealing with complex data structures 
 
 \noindent {\Large \bf Introduction}
 
-"Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are a few of my favorites:] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
+"Causal inference" deals primarily with the formal mechanisms by which we can combine data, assumptions, and models to interpret a correlation (or association) as a causal relation.^[There are a number of excellent introductory books and articles on causal inference in the empirical sciences. Here are some excellent options: @Hernan2015, @Pearl2016, @Imbens2015] The framework by which we define what we mean by "causal relation" or "causal effect" is the **potential outcomes framework**.
 
 A central notion in the potential outcomes framework is the counterfactual. This notion stems from the intuitive and informal practice of interpreting cause-effect relations as **circumstances (e.g., health outcomes) that would have arisen had things (e.g., exposures) been different**.
 
 While this intuition serves an important purpose, it is not sufficient for doing rigorous science. Suppose we ask: "what is the effect of smoking on CVD risk, irrespective of smoking's effect on body weight?" This question seems clear and intiutive. To answer this question, we would do a study in which we collect data, enter these into a computer, perform some calculations, and obtain a number (the "effect").
 
-But there is a problem.^[This problem was articulated by Robins (1987), and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences about cause effect relations are ambiguous**. For example, the "effect of smoking" can mean many different things:
+But there is a problem.^[This problem was articulated by @Robins1987, and I am using the example from his paper.] The calculations performed by the computer are **rigorously defined mathematical objects**. On the other hand, **english language sentences about cause effect relations are ambiguous**. For example, the "effect of smoking" can mean many different things:
 
 \begin{itemize}
 \item All people smoke any tobacco ever versus no people smoke tobacco ever.
@@ -71,7 +74,7 @@ But there is a problem.^[This problem was articulated by Robins (1987), and I am
 \item The effect of smoking on CVD risk if everyone were held at the body mass they had in the month prior to study entry?
 \end{itemize}
 
-But the computer does not admit such ambiguity.^[The first computers were called "logical machines"] Depending on several choices, including the data, how variables are coded, and the modeling strategy, the computer is being told which question to answer. There is a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms we use to answer those questions. Causal inference is about clarifying this uncertainty.
+But the numerical strings of data and the computer algorithms applied to these data are well defined mathematical objects, which do not admit such ambiguity. Depending on several choices, including the data, how variables are coded, and the modeling strategy, the computer is being told which question to answer. There is a lot of potential uncertainty in the space between the English language sentences we use to ask causal questions, and the computer algorithms we use to answer those questions. Causal inference is about clarifying this uncertainty.
 
 \noindent {\Large \bf Complex Longitudinal Data}
 
@@ -98,7 +101,7 @@ In this short course, we will learn how to use the parametric g formula to accou
 
 \noindent {\Large \bf Notation}
 
-The building blocks for causal inference are **potential outcomes**. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)$], then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
+The building blocks for causal inference are **potential outcomes** [@Rubin2005]. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)$], then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
 ```{marginfigure}
 **Study Question 1:** Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed?
 ```
@@ -121,14 +124,11 @@ where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are many others besides thes
 
 The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including ordinary least squares, maximum likelihood, or the method of moments.
 
-To be specific, let's simulate some hypothetical observational data on the relation between smoking and CVD. Let's look at ordinary least squares and maximum likelihood as estimators:
-```{r,echo=F}
-expit<-function(z){
-  1/(1+exp(-(z)))
-}
-```
+To be specific, let's simulate some hypothetical data on the relation between smoking and CVD. Let's look at ordinary least squares and maximum likelihood as estimators:
 ```{r, echo=T,fig.star=T,tidy=F,highlight=T}
 ### CODE SET 1
+# define the expit function
+expit<-function(z){1/(1+exp(-(z)))}
 set.seed(123)
 n<-1e6
 confounder<-rbinom(n,1,.5)
@@ -158,11 +158,11 @@ CVD<-rbinom(n,1,.1+.05*smoking+.05*confounder)
 pC<-round(mean(confounder),3)
 ols_RD<-round(coef(lm(CVD~smoking+confounder)),4)
 ```
-In our simple setting with 1 million observations, ordinary least squares and maximum likelihood yielded the same associational risk difference (as expected) even though they are different **estimators**. Finally, the values obtained from each regression approach are our **estimates.**
+In our simple setting with 1 million observations, ordinary least squares and maximum likelihood yielded the same associational risk difference (as expected) even though they are different **estimators**. Finally, the values obtained from each regression approach are our **estimates**.
 
 \noindent {\Large \bf Identifiability}
 
-In our simulation example, we estimated the associational risk difference using three different estimators. Estimating associations is really all we can do with empirical data. But we want to use the associational risk difference to quantify the causal risk difference. We can only do so if the causal risk difference is **identified**. A parameter (e.g., causal risk difference) is identified if we can write it as a function of the observed data.
+In our simulation example, we estimated the associational risk difference using three different estimators. Estimating associations is all we can do with empirical data. But we want to use the associational risk difference to quantify the causal risk difference. We can only do so if the causal risk difference is **identified**. A parameter (e.g., causal risk difference) is identified if we can write it as a function of the observed data.
 
 The causal risk difference is defined as a contrast of potential outcomes. Referring back to our simulated example, we want to estimate the causal risk difference conditional on $C$:
 $$ P( Y^{1} = 1 \mid C) - P( Y^{0} =1 \mid C ), $$
@@ -172,43 +172,43 @@ where each term in this equation is interpreted as the risk of CVD **among those
 $$ P(Y^x = 1 \mid C) = P(Y = 1 \mid X = x, C) $$
 which says that the risk of CVD that would be observed if everyone were set to $X=x$ is equal to the risk of CVD that we observe among those with $X=x$. In this equation, the right hand side equation is written entirely in terms of observed data ($Y=1$). The left hand side is a function of unobserved potential outcomes ($Y^x=1$). This equivalence will only hold if we can make some assumptions.
 
-The first is **counterfactual consistency**, which states that the potential outcome that would be observed if we set the exposure to the observed value is the observed outcome.^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions based on this study. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
+The first is **counterfactual consistency**, which states that the potential outcome that would be observed if we set the exposure to the observed value is the observed outcome [@Hernan2005b,@Hernan2008a,@Hernan2011a,@VanderWeele2013b].^[While somewhat convoluted, this assumption is about legitimizing the connection between our observational study, and future interventions in actual populations. In our observational study, we **see** people with with a certain value of the exposure. In a future intervention, we **set** people to a certain value of the exposure.] Formally, counterfactually consistency states that:
 $$\text{ if }X = x\text{ then }Y^x = Y $$
 The status of this assumption remains unaffected by the choice of analytic method (e.g., standard regression versus g methods). Rather, this assumption’s validity depends on the nature of the exposure assignment mechanism.
 
-We must also assume **no interference**, which states that the potential outcome for any given individual does not depend on the exposure status of another individual. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up Rubin's stable-unit treatment value assumption (SUTVA).] Notation and methods that account for interference can become very complicated very fast, and we will not consider the impact of interference here.
+We must also assume **no interference**, which states that the potential outcome for any given individual does not depend on the exposure status of another individual [@Hudgens2008,@Naimi2015]. If this assumption were not true, we would have to write the potential outcomes as a function of the expsoure status of multiple individuals. For example, for two different people indexed by $i$ and $j$, we might write: $Y_i^{x_i,x_j}$.^[Together, counterfactual consistency and no interference make up the stable-unit treatment value assumption (SUTVA), first articulated by @Rubin1980.] Notation and methods that account for interference can be somewhat complex [@Tchetgen2012,@Halloran2016], and we will not consider the impact of interference here.
 
 Together, counterfactual consistency and no interference allow us to make some progress in writing the potential risk $P(Y^x = 1 \mid C)$ as a function of the observed risk $P(Y = 1 \mid X=x, C)$. Specifically, by counterfactual consistency and no interference, we can do the following:
 $$ P( Y = 1 \mid X = x, C) = P(Y^x = 1 \mid X = x, C) $$
-A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) are independent of the observed exposures $X$. If this holds, then we have: 
+A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) are independent of the observed exposures $X$ [@Greenland1986,@Greenland1999,@Greenland2009]. If this holds, then we have: 
 $$ P(Y^x = 1 \mid X=x, C) = P(Y^x = 1 \mid C) $$
-If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement. What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
+If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement.^[For an excellent discussion of why the potential outcomes are independent of the observed exposure under exchangeability, see Chapter 2 of @Hernan2015] What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
 
 Although it seems that we have successfully written the potential risk as a function of the observed data, we are in need of two more assumptions. The first is **correct model specification**. This assumption is required when we rely on models to estimate effects, but can be minimized or avoided by using semi- or non-parametric approaches. There are several ways in which this assumption can be violated, and these include the omission of relevant interaction terms, or adjusting for continuous covariates using linear terms only.
 
-The second is **positivity**,^[Also known as the experimental treatment assignment assumption.] and requires exposed and unexposed individuals within all levels of the confounder. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with individuals in the sample. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
+The second is **positivity**,^[Also known as the experimental treatment assignment assumption.] and requires exposed and unexposed individuals within all levels of the confounder [@Mortimer2005,@Westreich2010a]. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with observations. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
 
 \newpage
 \noindent {\Large \bf \underline{The Parametric G Formula}}
 
-In this section, we will illustrate implementation of the parametric g formula using four examples with simulated and empirical data. The first will be a very simple setting with one exposure, one confounder, and one outcome. This example will demonstrate the process behind model-based standardization, which is essentially what the parametric g formula does with complex longitudinal data. However, the data from the first example are neither complex nor longitudinal. 
+In this section, we will illustrate implementation of the parametric g formula using four examples with simulated and empirical data. The first will be a very simple setting with one exposure, one confounder, and one outcome. This example will demonstrate model-based standardization, which is essentially what the parametric g formula does with complex longitudinal data. However, the data from the first example are neither complex nor longitudinal. 
 
-The second example will be identical to the first, with a time-varying exposure measured twice, and a time-varying confounder measured once. This is the simplest complex longitudinal data scenario in which one can implement the g formula, and we will use it to emphasize core concepts. 
+The second example will be identical to the first, except the exposure will be measured twice (time-varying). It will also include a time-varying confounder measured once, but that creates a feedback loop between the first and second exposure measurement. This is the simplest complex longitudinal data scenario in which one can implement the g formula, and we will use it to emphasize core concepts. 
 
-The third example will be the first using actual empirical data. We will take the same basic procedures introduced in the first two examples, and apply them in a more complex setting. The added complexity comes from the fact that we will be using actual data (from the National Survey of Family Growth), and that we will be answering questions about causal mediation.
+In the first two examples, we will establish a series of procedures to implement the g formula in a wide range of settings. Specifically, we will discuss problem setup, implementation, validation, and interpretation. The setup stage is about what you need to write down and organize to implement the parametric g formula. In the implementation stage, I will show you what models you need to fit based on the setup. After fitting these models, we need to evaluate quality (validation stage). Finally we must interpret in light of the assumptions we covered in the previous section.
+
+The third example will be with actual data from the National Survey of Family Growth. We will answer questions about total, direct, and indirect effects (causal mediation).
 
 Our final example will be the most complex. We will use data based on a randomized trial of daily low dose aspirin on pregnancy outcomes. We will deal with multiple time-points, and multiple competing outcomes. I will show you how to tailor implementation of the the g formula to a given study design.
 
-Each example will be divided into four stages: Setup, Implementation, Validation, and Interpretation. The setup stage, will be about what you need to write down and organize to implement the parametric g formula. In the implementation stage, I will show you what models you need to fit based on the setup. After fitting these models, we need to evaluate quality. I will show you how to do this in the validation stage. Finally, once we obtain results, we must interpret in light of the assumptions we covered in the previous section. We will use each example to do this.  
-
 \noindent {\Large \bf Example 0: Model-Based Standardization}
 
-Let's start with a simple example about the effect of treatment for HIV on CD4 count. The causal diagram representing this scenario is depicted in Figure 3. 
+Let's start with a simple simulated example, and presume we're interested in the effect of treatment for HIV on CD4 count. The causal diagram representing this scenario is depicted in Figure 3. 
 
 ```{r, out.width = "200px",fig.cap="Causal diagram representing the relation between anti-retroviral treatment ($A$), HIV viral load just prior to treatment ($C$), and CD4 count measured at the end of follow-up ($Y$).",echo=F}
 knitr::include_graphics("F3.pdf")
 ```
-Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise). The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate.
+Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise).
 \begin{table}
 \caption{Example data illustrating the number of subjects ($N$) within each possible combination of treatment ($A$) and HIV viral load ($C$). The outcome column ($Y$) corresponds to the mean of $Y$ within levels of $A$ and $C$.}
 \begin{tabular}{lllll}
@@ -222,7 +222,7 @@ $C$ & $A$ & $Y$ & $N$  \\
 \hline
 \end{tabular}
 \end{table}
-We will analyze these data using model-based standardization, which is equivalent to the parametric g formula in a time-fixed exposure setting.
+The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate. Becuase the continuous outcome is summarized over each treatment $\times$ covariate level, we cannot estimate standard errors but will rather focus on estimating the parameter of interest.^[The bootstrap will be demonstrated in the empirical examples.] We will analyze these data using model-based standardization, which is equivalent to the parametric g formula in a time-fixed exposure setting.
 
 We first start with the **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. In this simple setting, our estimand of interest is the marginal average causal effect on the difference scale:
 $$ E(Y^{a=1} - Y^{a=0}) $$
@@ -240,7 +240,9 @@ $C$ & $P(C ) = \expit(\gamma_0)$ \\
 \end{tabular}
 \end{table}
 
-Finally, we tie each of these equations together to give us a pre-cursor to the g formula. To do this, we invoke the law of total probability, which states that the $P(A) = \sum_B P(A \mid B)P(B)$. This allows us to "average over" a conditional to obtain a marginal. In our case, the relevant conditional is the regression model for the outcome, and we have to average over the distributions of $A$ and $C$:
+How do we know which models to specify? We regress each variable against everything that comes before it. However, we must ensure that we do not break the **cardinal rule of causal inference**: do not adjust for the future.
+
+Finally, we tie each of these models together to give us a pre-cursor to the g formula. To do this, we invoke the law of total probability, which states that the $P(A) = \sum_B P(A \mid B)P(B)$. This allows us to "average over" a conditional to obtain a marginal. In our case, the relevant conditional is the regression model for the outcome, and we have to average over the distributions of $A$ and $C$:
 $$ E(Y) = \sum_A \sum_C E(Y \mid A, C)P(A\mid C) P(C)$$
 To obtain the g formula from this expression, we replace all instances of $A$ with $A=a$ and remove $P(A \mid C)$
 $$ E(Y^a) = \sum_C E(Y \mid A=a, C) P(C)$$
@@ -248,6 +250,7 @@ which holds under our identifiability assumptions.
 
 We're now ready for **implementation**. Suppose we wanted to estimate the unconditional (i.e., marginal) mean outcome in the sample. There are two ways we can do this. The easy way would be to simply take the average in the sample:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 2
 # arrange into long data
 C<-c(0,0,1,1);A<-c(0,1,0,1);Y<-c(94.3,119.2,130.6,155.7)
 N<-c(344052,154568,154560,346820)
@@ -259,9 +262,11 @@ for(i in 1:4){
 names(D)<-c("C","A","Y")
 # take the mean of Y
 mean(D$Y)
+## END CODE SET 2
 ```
 But we could also compute the marginal mean using the law of total probability. To do this, we can estimate our models using the data, and then predict from each in sequence:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 3
 # fit models
 mC<-glm(C~1,data=D,family=binomial("logit"))
 mA<-glm(A~C,data=D,family=binomial("logit"))
@@ -277,11 +282,13 @@ pY<-predict(mY,newdata=data.frame(A=pA,C=pC),type="response")
 
 # compute marginal mean of predicted Y
 mean(pY)
+## END CODE SET 3
 ```
-The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions. We now have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). The mean of both these versions is the same: 125.0. This **validation** step tells us that our models are good enough to approximate the actual data generating mechanism.
+The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions (to see why this works, refer to **Appendix 1**). We now have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). The mean of both these versions is the same: 125.0. This **validation** step tells us that our models are good enough to approximate the actual data generating mechanism.
 
 Continuing with our **implementation**, we can also use this code to predict $Y$ if $A=1$ for everyone or if $A=0$ for everyone. We must just replace "A=pA" with "A=1" and "A=0" in the last line of code that yields the predictions we want. Replacing "A=pA" with "A=a" is tantamount to replacing all instances of $A$ in the above equations with $A=a$, and removing the $P(A\mid C)$ term:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 4
 # for A=1
 pY_1<-predict(mY,newdata=data.frame(A=1,C=pC),type="response")
 mY_1<-mean(pY_1)
@@ -289,6 +296,7 @@ mY_1<-mean(pY_1)
 #for A=0
 pY_0<-predict(mY,newdata=data.frame(A=0,C=pC),type="response")
 mY_0<-mean(pY_0)
+## END CODE SET 4
 ```
 \noindent The difference between these two means of interest is `r round(mY_1-mY_0,1)`, which we must **interpret**. 
 
@@ -310,7 +318,7 @@ In the previous example, we dealt with data that was neither longitudinal nor co
 ```{r, out.width = "200px",fig.cap="Causal diagram representing the relation between anti-retroviral treatment at time 0 ($A_0$), HIV viral load just prior to the second round of treatment ($Z_1$), anti-retroviral treatment status at time 1 ($A_1$), the CD4 count measured at the end of follow-up ($Y$), and an unmeasured common cause ($U$) of HIV viral load and CD4.",echo=F}
 knitr::include_graphics("F4.pdf")
 ```
-Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise). Treatment is measured at baseline ($A_0$) and once during follow up ($A_1$). The sole covariate is elevated HIV viral load ($Z=1$ for those with $>200$ copies/ml, $Z=0$ otherwise), which is constant by design at baseline ($Z_0=1$) and measured once during follow up just prior to the second treatment ($Z_1$). The outcome is CD4 count measured at the end of follow up in units of cells/mm$^3$. The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate.
+Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise). Treatment is measured at baseline ($A_0$) and once during follow up ($A_1$). The sole covariate is elevated HIV viral load ($Z=1$ for those with $>200$ copies/ml, $Z=0$ otherwise), which is constant by design at baseline ($Z_0=1$) and measured once during follow up just prior to the second treatment ($Z_1$). The outcome is CD4 count measured at the end of follow up in units of cells/mm$^3$. Again, the CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate.
 
 \begin{table}
 \caption{Prospective study data illustrating the number of subjects ($N$) within each possible combination of treatment at time 0 ($A_0$), HIV viral load just prior to the second round of treatment ($Z_1$), and treatment status for the 2nd round of treatment ($A_1$). The outcome column ($Y$) corresponds to the mean of $Y$ within levels of $A_0$, $Z_1$, $A_1$. Note that HIV viral load at baseline is high ($Z_0 = 1$) for everyone by design.}\label{DATA}
@@ -330,13 +338,11 @@ $A_0$ & $Z_1$ & $A_1$ & $Y$ & $N$  \\
 \end{tabular}
 \end{table}
 
-Setup, Implementation, Validation, Interpretation.
-
-The number of participants is provided in the rightmost column of Table 1. In this hypothetical study of one million participants we ignore random error (i.e., we will not focus on confidence interval estimation). Let's again start with the problem **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. Here, we focus on the average causal effect of always taking treatment ($a_0 = 1, a_1 = 1$) compared to never taking treatment ($a_0 = 0, a_1 = 0$),
+The number of participants is provided in the rightmost column of Table 1. In this hypothetical study of one million participants we ignore random error (i.e., we will not focus on confidence interval estimation). Let's again start with the problem **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. Here, we focus on the average causal effect of always taking treatment, $(a_0 = 1, a_1 = 1) \equiv \overline{a}_1=1$, compared to never taking treatment, $(a_0 = 0, a_1 = 0) \equiv \overline{a}_1=0$:
 \begin{equation*}
-	\psi = E(Y^{a_0 = 1, a_1 = 1}) - E(Y^{a_0 = 0, a_1 = 0}).
+	\psi = E(Y^{\overline{a}_1=1}) - E(Y^{\overline{a}_1=0}).
 \end{equation*}
-This average causal effect consists of the joint effect of $A_0$ and $A_1$ on $Y$ (@Daniel2013). Here, $Y^{a_0, a_1}$ represents a potential outcome value that would have been observed had the exposures been set to specific levels $a_0$ and $a_1$.
+This average causal effect consists of the joint effect of $A_0$ and $A_1$ on $Y$ [@Daniel2013]. Here, $Y^{\overline{a}_1}$ represents a potential outcome value that would have been observed had the exposures been set to specific levels $a_0$ and $a_1$.
 
 The causal order of our observed variables is: $A_0$, $Z_1$, $A_1$, and $Y$.^[Note that we ignore $U$ in this step becuase it is not measured.] For each of these variables, we can write down the following models:
 \begin{table}
@@ -349,7 +355,7 @@ $A_0$ & $P(A_0) = \expit(\theta_0)$ \\
 \end{tabular}
 \end{table}
 
-Next, we tie each of these equations together to give us a precursor to the g formula. As in the previous example, we use the law of total probability to do this, which yields: 
+Again, these models are obtained by regressing each variable against everything that comes before. Next, we tie each of these equations together to give us a precursor to the g formula. As in the previous example, we use the law of total probability to do this, which yields: 
 \begin{equation*}
 E(Y) = \sum_{A_1} \sum_{Z_1} \sum_{A_0} E(Y \mid A_1,Z_1,A_0)P(A_1 \mid Z_1) P(Z_1 \mid A_0 )P(A_0).
 \end{equation*}
@@ -357,10 +363,11 @@ We get the g formula when we replace all instances of $A_0$ and $A_1$ with $a_0$
 \begin{equation*}
 E(Y^{a_0,a_1}) = \sum_{Z_1} E(Y \mid A_1=a_1,Z_1,A_0=a_0)P(Z_1 \mid A_0=a_0 ).
 \end{equation*}
-which holds under our identifiability assumptions.
+\noindent which holds under our identifiability assumptions.
 
 Let's now **implement** the g formula in our software programs. We will again start by estimating the unconditional (i.e., marginal) mean outcome in the sample, by first taking the sample average:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 5
 # arrange into long data
 a0<-c(0,0,0,0,1,1,1,1);z1<-c(0,0,1,1,0,0,1,1);a1<-c(0,1,0,1,0,1,0,1)
 y<-c(87.29,112.11,119.65,144.84,105.28,130.18,137.72,162.83)
@@ -372,10 +379,12 @@ for(i in 1:8){
 }
 names(D)<-c("a0","z1","a1","y")
 # take the mean of Y
-mean(D$y) 
+mean(D$y)
+## END CODE SET 5
 ```
 Next, we compute the marginal mean using the law of total probability by estimating our models using the data, and then predicting from each in sequence:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 6
 # fit models
 mA0<-glm(a0~1,data=D,family=binomial("logit"))
 mZ1<-glm(z1~a0,data=D,family=binomial("logit"))
@@ -394,13 +403,15 @@ pY<-predict(mY,newdata=data.frame(a0=pA0,z1=pZ1,a1=pA1),type="response")
 
 # compute marginal mean of predicted Y
 mean(pY)
+## END CODE SET 6
 ```
-Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario that corresponds to the exposure distribution that was actually observed in our empirical data. This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is am important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance^[Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.] that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.
+Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario: by consistency and no interference, it is the outcome distribution that would be observed if the exposure distribution was what actually occurred in our data. This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is am important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance^[Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.] that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.
 
-In our example, the empirical and natural course means are again the same: `r mean(pY)`.
+In our example, the empirical and natural course means are again the same: `r round(mean(pY),1)`.
 
 Continuing with our **implementation**, we can also use this code to predict $Y$ if $A=1$ for everyone or if $A=0$ for everyone:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
+## CODE SET 7
 # for A=1
 pZ_1<-predict(mZ1,newdata=data.frame(a0=1),type="response")
 pY_1<-predict(mY,newdata=data.frame(a0=1,z1=pZ_1,a1=1),type="response")
@@ -410,11 +421,30 @@ mY_1<-mean(pY_1)
 pZ_0<-predict(mZ1,newdata=data.frame(a0=0),type="response")
 pY_0<-predict(mY,newdata=data.frame(a0=0,z1=pZ_0,a1=0),type="response")
 mY_0<-mean(pY_0)
+## END CODE SET 7
 ```
-\noindent The difference between these two means is `r round(mY_1-mY_0,1)`. If we make the same assumptions as in the previous example (counterfactual consistency, interference, exchangeability, no model mis-specification, positivity), we can interpret this as our causal effect of interest.
+\noindent The difference between these two means is `r round(mY_1-mY_0,1)` cells/mL (a 25 cell/mL difference for each time-point, which corresponds to the true effect in our simulated scenario). If we make the same assumptions as in the previous example (counterfactual consistency, no interference, exchangeability, no model mis-specification, positivity), we can interpret this as our causal effect of interest.
 
+Before moving on to our next examples, let's take another look at our second simulated example. According to the causal diagram in Figure 3, we should be able to obtain an unbiased estimate of the $A_0$ and $A_1$ effects using simple regression models. For example, if we adjust for $Z_1$, there is no open back-door path from $A_1$ to $Y$. If we run the code to do this, we find this is actually the case:
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+# CODE SET 8
+round(coef(glm(y~a1+z1,data=D,family=gaussian("identity"))),1)
+# END CODE SET 8
+```
+Similarly, because there are no confounders of the relation between $A_0$ and $Y$, the causal diagram suggests that simply regressing $Y$ against $A_0$ will give us an unbiased effect estimate (the true effect is 25.0 cells/mL):
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+# CODE SET 9
+round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)
+# END CODE SET 9
+```
+However, doing this overestimates the true effect by `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)-25` cells/mL. Why? This is the consequence of feedback between $A_0$ and $A_1$. Becuase $A_0$ affects $A_1$ indirectly through $Z_1$, this regression model is estimating the overall effect of $A_0$ on $Y$. Thus, the estimate of `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)` is correct becuase it is quantifying the direct effect of $A_0$ plus the indirect effect of $A_0$ via $A_1$.
 
+Note that while this estimate is not incorrect by itself, if we were intersted in estimating $E(Y^{\overline{a}_1=1}-Y^{\overline{a}_1=0})$, and we added the two estimates from these simple regression models to do this, we would be wrong because we'd be counting a portion of the $A_1$ effect twice.
 
+\noindent {\Large \bf Appendix 1}
 
+Show link between law of total probability and prediction from regression models here.
+
+\newpage
 
 # References
