@@ -203,12 +203,12 @@ Our final example will be the most complex. We will use data based on a randomiz
 
 \noindent {\Large \bf Example 0: Model-Based Standardization}
 
-Let's start with a simple simulated example, and presume we're interested in the effect of treatment for HIV on CD4 count. The causal diagram representing this scenario is depicted in Figure 3. 
+Let's start with a simple simulated example, and presume it represents data to answer questions about the effect of treatment for HIV on CD4 count. The causal diagram representing this scenario is depicted in Figure 3. 
 
 ```{r, out.width = "200px",fig.cap="Causal diagram representing the relation between anti-retroviral treatment ($A$), HIV viral load just prior to treatment ($C$), and CD4 count measured at the end of follow-up ($Y$).",echo=F}
 knitr::include_graphics("F3.pdf")
 ```
-Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise).
+Table 1 presents data from this simulated observational cohort study ($A=1$ for treated, $A=0$ otherwise).
 \begin{table}
 \caption{Example data illustrating the number of subjects ($N$) within each possible combination of treatment ($A$) and HIV viral load ($C$). The outcome column ($Y$) corresponds to the mean of $Y$ within levels of $A$ and $C$.}
 \begin{tabular}{lllll}
@@ -225,7 +225,7 @@ $C$ & $A$ & $Y$ & $N$  \\
 The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate. Becuase the continuous outcome is summarized over each treatment $\times$ covariate level, we cannot estimate standard errors but will rather focus on estimating the parameter of interest.^[The bootstrap will be demonstrated in the empirical examples.] We will analyze these data using model-based standardization, which is equivalent to the parametric g formula in a time-fixed exposure setting.
 
 We first start with the **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. In this simple setting, our estimand of interest is the marginal average causal effect on the difference scale:
-$$ E(Y^{a=1} - Y^{a=0}) $$
+$$ E(Y^{a=1} - Y^{a=0})$$
 This estimand tells us that we need to quantify two outcome averages: one that would be observed if everyone were exposed, and one if everyone were unexposed. 
 
 Next, we examine our causal diagram to order our variables causally. The causal sequence of variables is: $C$ (first), $A$ (second), and $Y$ (third). To see why, note that in Figure 3 there are no variables that cause $C$, $A$ is caused by $C$, and $Y$ is caused by both $A$ and $C$. Becuase of this, $A$ cannot come before $C$ (an effect cannot precede its cause), nor can $Y$ come before $A$ or $C$. The causal ordering of our variables is therefore $C$, $A$, and $Y$.
@@ -284,7 +284,17 @@ pY<-predict(mY,newdata=data.frame(A=pA,C=pC),type="response")
 mean(pY)
 ## END CODE SET 3
 ```
-The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions (to see why this works, refer to **Appendix 1**). We now have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). The mean of both these versions is the same: 125.0. This **validation** step tells us that our models are good enough to approximate the actual data generating mechanism.
+The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions. To see why this works, suppose we're interested in the marginal (i.e., averaged over $C$) mean of $Y$ if $A=0$, and let's assume for illustrative purposes that $P(C=1) = 0.2$ (it's not in our example):
+\begin{table}
+\begin{tabular}{rl}
+$E(Y \mid A=0)$ & = $ \sum_C E(Y \mid A=0,C)P(C)$ \\
+                & = $E(Y \mid A=0,C=0)P(C=0) + E(Y \mid A=0,C=1)P(C=1)$ \\
+                & = $\alpha_0 \times 0.8 + (\alpha_0+\alpha_2) \times 0.2$
+\end{tabular}
+\end{table}
+\noindent Note that, in the second line of the above, $E(Y \mid A=0,C=0)$ and $E(Y \mid A=0,C=1)$ are just the averages of $Y$ among those with $A=0,C=0$ and $A=0,C=1$, respectively. We can therefore replace these with the parameters from our model. In a dataset of 100 people with $A=0$, $\sim 80$ would have $C=0$ and $\sim 20$ would have $C=1$. Among those 100, the true average outcome for those with $C=0$ would be $\alpha_0$, and the true average outcome for those with $C=1$ would be $\alpha_0+\alpha_2$. Therefore, the average of $Y$ among these 100 people with $A=0$ would be precisely the weighted combination of averages that we need: $\alpha_0 \times 0.8 + (\alpha_0+\alpha_2) \times 0.2$. This is why we can use our data and/or predictions to implement the law of total probability.
+
+Back to our original example, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). The mean of both these versions is the same: 125.0. This **validation** step tells us that our models are doing a decent job at recreating the averages that result from our actual data generating mechanisms.
 
 Continuing with our **implementation**, we can also use this code to predict $Y$ if $A=1$ for everyone or if $A=0$ for everyone. We must just replace "A=pA" with "A=1" and "A=0" in the last line of code that yields the predictions we want. Replacing "A=pA" with "A=a" is tantamount to replacing all instances of $A$ in the above equations with $A=a$, and removing the $P(A\mid C)$ term:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
@@ -304,7 +314,7 @@ The basic question is whether we can interpret this difference as the causal eff
 
 For interference, we must ask whether giving someone ART will affect the CD4 count of another person. In this case, it seems reasonable to assume no such interference occurs. Exchangeability is something we often consider in epidemiology, and requires no uncontrolled confounding, information, or selection bias. 
 
-Becuase of the small number of variables in this example, correct model specification is not likely to pose any problems. If, for example, an interaction between $A$ and $C$ in the model for $Y$ is required, our model would be mis-specified. But even if this were the case, our marginal effect would still be valid.^[Marginal effects represent weighted averages of the effect in the population of interest. Therefore, omitting any interaction between $A$ and $C$ is not likely to pose major problems.] 
+Becuase of the small number of variables in this example, correct model specification is not likely to pose any problems. If, for example, an interaction between $A$ and $C$ in the model for $Y$ is required, our model would be mis-specified. With a small number of categorical variables, we can saturate all the models to estimate things nonparametrically. However, this is often not possible when there are many categorical confounders, or any continuous confounders.
 
 Finally, for positivity, we must ask whether there are exposed and unexposed individuals in each confounder level. In our simple setting, it is easy to verify this with a $2\times 2$ table:
 ```{r}
@@ -405,7 +415,7 @@ pY<-predict(mY,newdata=data.frame(a0=pA0,z1=pZ1,a1=pA1),type="response")
 mean(pY)
 ## END CODE SET 6
 ```
-Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario: by consistency and no interference, it is the outcome distribution that would be observed if the exposure distribution was what actually occurred in our data. This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is am important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance^[Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.] that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.
+Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario: by consistency and no interference, it is the outcome distribution that would be observed if the exposure distribution was what actually occurred in our data. This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is an important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.^[Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.]
 
 In our example, the empirical and natural course means are again the same: `r round(mean(pY),1)`.
 
@@ -431,20 +441,134 @@ Before moving on to our next examples, let's take another look at our second sim
 round(coef(glm(y~a1+z1,data=D,family=gaussian("identity"))),1)
 # END CODE SET 8
 ```
-Similarly, because there are no confounders of the relation between $A_0$ and $Y$, the causal diagram suggests that simply regressing $Y$ against $A_0$ will give us an unbiased effect estimate (the true effect is 25.0 cells/mL):
+Similarly, because there are no confounders of the relation between $A_0$ and $Y$, the causal diagram seems to suggest that simply regressing $Y$ against $A_0$ will give us an unbiased effect estimate (the true effect is 25.0 cells/mL):
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
 # CODE SET 9
 round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)
 # END CODE SET 9
 ```
-However, doing this overestimates the true effect by `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)-25` cells/mL. Why? This is the consequence of feedback between $A_0$ and $A_1$. Becuase $A_0$ affects $A_1$ indirectly through $Z_1$, this regression model is estimating the overall effect of $A_0$ on $Y$. Thus, the estimate of `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)` is correct becuase it is quantifying the direct effect of $A_0$ plus the indirect effect of $A_0$ via $A_1$.
+However, doing this overestimates the true effect by `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)[2]-25` cells/mL. Why? This is a consequence of feedback between $A_0$ and $A_1$. Becuase $A_0$ affects $A_1$ indirectly through $Z_1$, this regression model is estimating the overall effect of $A_0$ on $Y$. Thus, the estimate of `r round(coef(glm(y~a0,data=D,family=gaussian("identity"))),1)[2]` is not wrong \emph{per se}. It is simply quantifying the direct effect of $A_0$ on $Y$, **plus** the indirect effect of $A_0$ on $Y$ via $A_1$.
 
 Note that while this estimate is not incorrect by itself, if we were intersted in estimating $E(Y^{\overline{a}_1=1}-Y^{\overline{a}_1=0})$, and we added the two estimates from these simple regression models to do this, we would be wrong because we'd be counting a portion of the $A_1$ effect twice.
 
-\noindent {\Large \bf Appendix 1}
+\newpage
+\noindent {\Large \bf Example 2: Mediation NSFG}
 
-Show link between law of total probability and prediction from regression models here.
+\newpage
+\noindent {\Large \bf Example 3: Per protocol effect of aspirin on fetal loss}
 
+In this final example, we will look at how to estimate the per protocol effect of daily low dose aspirin on pregnancy outcomes using data from a randomized trial. When seeking to estimate per protocol effects in RCTs, adjusting for non-compliance is imperative. Non-compliance occurs when study participants fail to take the assigned treatment. When the assigned treatment is a point intervention (e.g., vaccine, surgery), adjusting for noncompliance is straightforward [@Dunn2011].^[There are several ``compliance adjusted'' effects one can estimate. These include as treated, per protocol, and complier average causal effects. The latter are an example of principal strata effects, and share similarities with natural direct and indirect effects discussed in the mediation section. As with natural effects, complier average causal effects are not identifiable using the g formula.] However, when treatment consists of a series of actions over a long period [@Ford2016], accounting for the consequences of noncompliance becomes more complex.
+
+Common practice in randomized trials is to estimate the intent-to-treat (ITT) parameter [@Piantadosi2005]. This parameter is identified (i.e., computable) in a trial because under randomization the randomized treatment indicator is independent of all the potential outcomes. However, the ITT parameter is often not the parameter of primary interest [@Prentice2005]. Deviation from study protocol can lead to biases in treatment effect estimates that are not resolved by estimating the intent-to-treat (ITT) parameter. The ITT effect can still be used to quantify the effect of **treatment assignment**, quantifying the effect of compliance with the treatment plan, or of exposure to the treatment itself is more complex. Though unadjusted "as treated" or "per protocol" estimators are often used [@Hernan2012,Shrier2014], they can be biased by post-randomization confounding and selection bias [@Hernan2013].
+
+Simple covariate adjustment methods (e.g., regression, stratification, matching) will often fail to properly account for post-randomization confounding that results from noncompliance in randomized trials [@Robins2009]. At any point over follow-up, the decision to comply with protocol may depend on the history of compliance prior to that point. For example, a participant may decide not to take study medications after three months of perfect compliance because of adverse side effects, yet resume complying with protocol after a month of noncompliance. When treatment compliance affects post-randomization variables that are common causes of subsequent compliance and the outcome (e.g., the post-randomization variable is a mediator, or there is a common cause of the variable and the outcome), standard adjustment methods are inconsistent [@Robins2009,Daniel2013,Naimi2016b]. This is exactly the scenario depicted in the causal diagram in Figure 4. 
+
+While such patterns of partial noncompliance are common, they are often either ignored, or simply classified into dichotomous compliant or non-compliant categories and analyzed via naive (unadjusted) as treated or per protocol techniques. This latter tactic discards important information on the nature of compliance in a given trial, and fails to account for post-randomization confounding [@Hernan2012,Shrier2014]. Here, we will demonstrate how to use the parametric g formula to adjust for noncompliance in the Effects of Aspirin on Gestation and Reproduction (EAGeR) trial.
+
+The EAGeR trial sought to evaluate the role of aspirin on pregnancy outcomes among 1,228 women. The ITT parameter of aspirin assignment on the risk of live birth was estimated as 5.1\% [95\% CI -0.8 to 11.0]). However, there was a non-trivial degree of noncompliance with study protocol. In addition, predictors of the trial outcome (e.g., bleeding, gastrointenstinal discomfort) both affected and were affected by aspirin use, and were thus deemed time-varying confounders affected by prior exposure. Referring to Figure 4, $A$ becomes our measure of compliance, and $Z$ becomes these time-varying confounders.
+
+We'll again start with the problem **setup**, in which we define our estimands of interest. In a typical RCT with randomization indicator $R$ and outcome $Y$, the ITT effect is defined on the difference scale as:
+\begin{table}
+\begin{tabular}{rl}
+	$\Delta_{ITT}$ & = $P(Y\mid R=1)-P(Y\mid R=0)$ \\
+				 & = $P(Y^{r=1})-P(Y^{r=0})$,
+\end{tabular}
+\end{table}
+where $P(Y\mid R=r)$ is the probability of the outcome among those assigned to $R=r$, while  $P(Y^r)$ is the counterfactual probability that would be observed if $R$ were set to $r$. The marginal counterfactual probability $P(Y^r)$ equals the observed conditional probability $P(Y \mid R=r)$ if the counterfactual outcome is well defined and exchangeability holds [@Naimi2016b]. Under randomization, exchangeability holds in expectation. This ITT parameter quantifies the effect of assignment to a treatment intervention.
+
+Several causal estimands can be defined in the presence of a time-dependent noncompliance measure $\overline{X}_j$, where $j$ indexes time since randomization and overbars denote history (e.g., $\overline{X}_j = \{X_0,X_2,\cdots,X_j\}$). The per protocol effect is often of interest along with the ITT, and is defined as: 
+$$  \Delta_{PP} =  P(Y^{r=\overline{x}=1}=1) - P(Y^{r=\overline{x}=0}=1) $$
+where $Y^{r,\overline{x}}$ denotes the counterfactual outcome that would be observed if compliance $\overline{x}$ was set to the assigned value $r$ over the entire course of follow-up. This equation defines the per protocol effect via potential outcomes, as it represents the effect of taking aspirin if assigned [@Hernan2012,@Shrier2014]. In contrast to $\Delta_{ITT}$, 
+$$ \Delta_{PP} \neq  P(Y=1 \mid R=\overline{X}=1) - P(Y=1 \mid R=\overline{X}=0) $$
+unless compliance is unassociated with study withdrawal and with any measured or unmeasured predictors of compliance and the outcome.
+
+**Empirical Data**
+We use data from $1,228$ women enrolled in the EAGeR study to illustrate the use of the parametric g formula to adjust for noncompliance. The design and protocols used for the EAGeR study have been documented [@Schisterman2013]. Briefly, EAGeR data were obtained from a multicenter, block randomized, double-blind, placebo-controlled trial. Eligible women were between 18-40 years of age, actively trying to conceive, and experienced one or two documented pregnancy losses. Women were randomized to receive 81 mg aspirin per day ($N=615$) or placebo ($N=613$); all received 400 mcg folic acid in addition. 
+
+Follow-up occurred for $\leq 6$ menstrual cycles while attempting to conceive, and throughout pregnancy for those who conceived. Planned study visits occurred at least monthly. Conception was determined via hCG and confirmed by 6.5 week ultrasound. For women who conceived, treatment was continued until 36 weeks gestation. A total of 286,844 person-days of data from daily dairies, study questionnaires, and clinical and telephone evaluations were collected from the EAGeR participants. From these sources, we compiled a dataset with information on baseline, time-dependent, and outcome covariates. Baseline covariates included randomization indicator, randomization date, age and body mass index at randomization, income, race/ethnicity, education, marital status, employment status, study site. Time-dependent covariates included compliance, vaginal bleeding, gastro-intestinal symptoms, and time to conception. The primary study outcome for the trial was the proportion of live births. Women were followed from randomization through pregnancy for live birth or pregnancy loss. To facilitate open access to the data and software programs, here we present results based on a synthetic copy of the EAGeR data. This synthetic copy was naturally created as a by-product of the g computation algorithm fit to the original EAGeR trial data.
+```{r include=F}
+library(devtools)
+install_github("ainaimi/gFormula")
+library(gFormula)
+```
+We can download this synthetic copy of the EAGeR data from GitHub. The data are arranged in long form (one row for each person month). These data were coarsened into `r nrow(aspirin)` person-months:
+```{r echo=T,fig.star=T,tidy=F,highlight=T,message=F}
+## CODE SET NN
+# download synthetic EAGeR data
+#install.packages("devtools")
+library(devtools)
+install_github("ainaimi/pgf")
+library(pgf)
+head(aspirin[names(aspirin) %in% c("id","study_month","treatment","y")],3)
+tail(aspirin[names(aspirin) %in% c("id","study_month","treatment","y")],3)
+## END CODE SET NN
+```
+
+Bottle-weight measurements taken at regular intervals over follow-up were used to quantify compliance. Let's look at how compliance patterns differed between the treatment and control group:
+```{r, out.width = "200px",fig.cap="Proportion compliant over the course of follow-up among 1,228 participants in the EAGeR trial, 2006-2012. Lines obtained from a local kernel regression smoother.",echo=F}
+knitr::include_graphics("compliance_plot1.png")
+```
+
+This Figure shows a moderate degree of noncompliance over early follow-up. Overall, non-compliance was 5.8\% lower among women randomized to aspirin versus placebo (95\% CI: -9.7, -1.9). Non-compliance was also associated with key demographic and clinical characteristics. Compliance among self reported white women was 76\%, versus 65\% among women of other races (difference: 10.4\%; 95\% CI: 1.4, 20.2). A similar compliance pattern was observed between married versus unmarried women. There were also moderate associations between time-varying covariates and compliance as well. For example, the odds of complying with treatment in the month following conception was 0.85 times the odds of complying prior to conception (95\% CIs: 0.75, 0.97). These results suggest important differences in compliance by baseline and time-dependent characteristics. These must be properly accounted for when estimating the effect of taking aspirin. 
+
+Let's also look at the outcome distributions including live birth, pregnancy loss, and end of follow-up without pregnancy (no pregnancy) among all women in the EAGeR trial:
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+t1a<-addmargins(table(aspirin[aspirin$last==1,]$y,aspirin[aspirin$last==1,]$treatment))
+attributes(t1a)$dimnames[[1]]<-c("Live Birth ($Y$)","Pregnancy Loss ($D$)",
+                                 "Withdrawal ($C$)","No Pregnancy ($S$)","Total")
+attributes(t1a)$dimnames[[2]]<-c("Placebo","Aspirin","Total")
+t1a
+```
+
+This Table shows the total number of each outcome, overall and within treatment and placebo groups, and can be used to compute the ITT risk differences/ratios. Figure \ref{ITT_CDF} shows the cumulative sub-distribution functions for live birth and pregnancy loss among women allocated to treatment versus placebo [@Fine1999]. 
+
+```{r, out.width = "200px",fig.cap="Cumulative sub-distribution functions from 1,228 women in the EAGeR data for live birth (top panel) and pregnancy loss (bottom panel) among those assigned to treatment versus placebo.",echo=F}
+knitr::include_graphics("ITT_CDF.png")
+```
+
+This figure shows a moderate effect of treatment assignment on live birth, but no effect of treatment assignment on pregnancy loss, as was previously found by [@Schisterman2014]. The 15 month ITT risk differences of aspirin assignment on live birth and pregnancy loss in our synthetic data were 4.47 (95\% CI: -2.73, 11.66) and 0.29 (-3.76, 4.34), respectively. Because of the design of the EAGeR study, there were no live births prior to 5 months on study. Follow up was stopped if conception did not occur within 6 months of study start. These design features will be used when we implement the parametric g formula, as explained below.
+
+**The Parametric G Formula for EAGeR**
+
+We will again rely on the Monte Carlo method to estimate the expectations needed for the per protocol effect. To do this, we need to **setup** the problem, which starts with assuming a causal ordering of each relevant variable for any given month on study: 
+\begin{table}[h]
+\small\sf\centering
+\caption{Assumed causal ordering of variables in any given month among 1,228 women in the EAGeR study, 2006-2012.\label{order}}
+\begin{tabular}{lll}
+\toprule
+Order & Notation & Variable \\
+\midrule
+8 & $Y$ & Live birth \\
+7 & $D$ & pregnancy loss \\
+6 & $S$ & No pregnancy \\
+5 & $C$ & Withdrawal \\
+4 & $Z$ & Conception \\
+3 & $X$ & Compliance \\
+2 & $N$ & GI Symptoms \\
+1 & $B$ & Bleeding \\
+\bottomrule
+\end{tabular}\\[10pt]
+\end{table}
+This ordering implies that, at any given month, a woman decision to comply with her assigned treatment will depend on that month's bleeding and GI symtoms. This decision to comply will then affect conception. Bleeding, GI symptoms, compliance, and conception will then affect the decision to remain in the study or withdraw. If the woman remains on study, and did not yet conceive, her follow-up may end without pregnancy. If she does conceive, the conception may end in pregnancy loss, or live birth. If, at any given time point, the true ordering of compliance with respect to other variables is unknown, sensitivity analyses in which different orderings are evaluated is required (see validation section).
+
+Even though we assume bleeding and GI symptoms are temporally (causally) prior to compliance in month $j$, the g formula allows compliance in month $j$ to affect bleeding and GI symptoms in all months $>j$. That is, this presumed ordering does not preclude the possibility that variables in prior months may affect variables anywhere in the ordering in subsequent months, with the exception of terminal events (e.g., live birth, pregnancy loss). Furthermore, though the variables in this Table cannot affect baseline variables (denoted $V$), they may be affected by them.
+
+Now that we've specified a causal ordering, let's continue our **setup** and write down the g formula for the per protocol averages. We are trying to quantify:
+$$ P(Y^{r=\overline{x}}=1), $$
+which can be interpreted as the risk of the outcome (in this case, live birth) that would be observed if someone were assigned to treatment level $r$, and their complete course of compliance over follow-up matched what they were randomized to.  Under our selected causal ordering, we can define the marginal probability of $Y$ as a function of the conditional probabilities of all relevant variables over all months of follow-up via the law of total probability. Applying this to all variables over all months yields: 
+ \begin{equation}
+ \begin{split}
+ 	 	P(Y_k^{\overline{x}_k,r,\overline{c}=0} = 1) = \sum_{m=0}^k \sum_{\overline{w}_m} P(Y_m = 1 & \mid \overline{X}_m := \overline{x}_m, R := r,\overline{C}_m:=0, \overline{W}_m=\overline{w}_m) \\ & \prod_{j=0}^m f(w_j\mid \overline{X}_m := \overline{x}_m, R := r,\overline{C}_m:=0,\overline{W}_{j-1}=\overline{w}_{j-1}),
+ \end{split}
+ 	\label{gform}
+ \end{equation}
+\noindent where $:=$ denotes ``setting'' the random variable to a fixed value, and $f(w_j \mid \bullet )$ denotes the joint distribution of all time-dependent and baseline covariates $w$. We quantify the probability in equation \ref{gform} twice: first setting assignment to $R=1$, and all compliance values to $\overline{x}=1$ and then setting assignment to $R=0$, and all compliance values to $\overline{x}=0$. Taking the difference or ratio of these two probabilities provides the causal effect of interest.
+
+This equation may look intimidating, but it is essentially an application of the law of total probability to the variables in our EAGeR data.
+
+```{r, out.width = "200px",fig.cap="Algorithmic description of the parametric g formula displayed in equation \ref{gform}. The algorithm begins with a random resample of all baseline covariates ($V$) and all time-varying covariates ($X,B,Z$) at the first month on study ($m=1$) from the observed data. These covariates are used to predict compliance and then bleeding at the second month on study ($X_2,B_2$). Each observation's conception value at the previous month ($m=1$) on study is then examined. If conception occurred in $m=1$, then in $m=2$ the observation is at risk pregnancy loss ($D_m$) or live birth ($Y_m$). If conception did not occur, then the observation is at risk of ending follow-up without pregnancy ($S_m$). If any terminal events occur, follow-up is ended. If not, the the month is advanced by one and the algorithm is re-iterated until a terminal event occurs, or $m$ reaches 15. In this manner, a simulated follow-up for each observation is generated. All predictions are simulated from regression models fit in the observed data.",echo=F}
+knitr::include_graphics("g_formula.pdf")
+```
 \newpage
 
 # References
