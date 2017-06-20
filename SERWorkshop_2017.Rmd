@@ -4,11 +4,20 @@ author: Ashley I. Naimi, PhD
 header-includes:
    - \DeclareMathOperator{\logit}{logit}
    - \DeclareMathOperator{\expit}{expit}
-output:
+   - \usepackage{setspace}
+   - \usepackage{booktabs}
+output: #pdf_document
   tufte::tufte_handout: default
   #tufte::tufte_html: default
 bibliography: ref_main_v4.bib
 ---
+
+```{r setup, include=FALSE}
+setwd("~/Dropbox/Documents/Research/Presentations/SER 2017/SER Workshop/pgf_course-master/")
+library(cmprsk)
+library(haven)
+library(ggplot2)
+```
 
 \noindent {\Large \bf Abstract}
 
@@ -35,16 +44,16 @@ Applied health scientists are increasingly dealing with complex data structures 
 \end{itemize}
 \noindent \underline{The Parametric G-Formula}
 \begin{itemize}
-\item Model-Based Standardization (Example 0)
-\begin{itemize}
-\item Setup
-\item Implementation
-\item Validation
-\item Interpretation
+\item Example 0: Model-Based Standardization with Time Fixed Data
+\item Example 1: Model-Based Standardization with Time-Varying Data (g formula)
+\item Example 2: National Survey of Family Growth Mediation analysis 
+\item Example 3: Effects of Aspirin on Gestation and Reproduction Per Protocol Effect Estimation
 \end{itemize}
-\item Example 1:
-\item Example 2:
-\item Example 3:
+
+\noindent \underline{Appendix}
+\begin{itemize}
+\item Abstraction of Steps Required to Implement Parametric G formula
+\item Bootstrap for CI estimation
 \end{itemize}
 
 \newpage
@@ -102,25 +111,40 @@ In this short course, we will learn how to use the parametric g formula to accou
 \noindent {\Large \bf Notation}
 
 The building blocks for causal inference are **potential outcomes** [@Rubin2005]. These are conceptually distinct from **observed outcomes**. Potential outcomes are functions of exposures. For a given exposure $x$, we will write the potential outcome as $Y^x$.^[Alternate notation includes: $Y_x$, $Y(x)$, $Y\mid Set(X=x)$, and $Y|do(X=x)$.] **This is interpreted as "the outcome ($Y$) that would be observed if $X$ were set to some value $x$"**. For example, if $X$ is binary [denoted $X \in (0,1)$], then $Y^x$ is the outcome that would be observed if $X=0$ or $X=1$. If we wanted to be specific about the value of $x$, we could write $Y^{x=0}$ or $Y^{x=1}$ (or, more succinctly,  $Y^{0}$ or $Y^{1}$).
-```{marginfigure}
-**Study Question 1:** Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed?
-```
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 1:} Suppose you collect data from a single person and find that they are exposed. Can you interpret their outcome to be the potential outcome that would have been observed had they been exposed? Why or why not?
+\end{quotation}
+
+______________________________________________________________________________________________
+
 
 When the exposoure and/or outcome are measured repeatedly over follow-up, notation must account for that. We thus use subscripts to denote when the variable was measured. For example, if the exposure is measured twice, we can denote the first measurement $X_0$ and the second $X_1$. Additionally, we use overbars to denote the history of a variable over follow-up time. For example, $\overline{X}_1$ denotes the set $\{X_0,X_1\}$. More generally, for some arbitrary point over follow-up $m$, $\overline{X}_m$ denotes $\{X_0,X_1,X_2, \ldots X_m\}$. We can then define potential outcomes as a function of these exposure histories: For two exposure measurements, $\overline{X}_j = \{1,1\}$, $Y^{\overline{x}_j = \overline{1}}$ is the outcome that would be observed if $X_0$ were set to $1$ and $X_1$ were set to $1$.
 
 \noindent {\Large \bf Estimand, Estimator, Estimate}
 
 Causal inference starts with a clear idea of the effect of interest (the target causal parameter). To do this, it helps to distinguish between estimands, estimators, and estimates.
-```{marginfigure}
-**Study Question 2a:** You are familar with the well known odds ratio equation for a $2\times 2$ table: ($ab/cd$). Is this an estimand, estimator, or estimate?
-```
-```{marginfigure}
-**Study Question 2b:** Can you think of another estimator that can be used to quantify the odds ratio?
-``` 
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 2a:} You are familar with the well known odds ratio equation for a $2\times 2$ table: ($ab/cd$). Is this an estimand, estimator, or estimate?
+\end{quotation}
+
+______________________________________________________________________________________________
+
+
 The **estimand** is the (mathematical) object we want to quantify. It is, for example, the causal risk difference, risk ratio, or odds ratio for our exposure and outcome of interest. In our smoking CVD example, we might be interested in:
 
 $$ P( Y^{1} = 1) - P( Y^{0} =1 ),\;\;\;\frac{P( Y^{1} = 1)}{P( Y^{0} =1 )},\;\;\; \frac{Odds( Y^{1} = 1)}{ Odds( Y^{0} = 1)}, $$
 where $Odds(Y^x = 1) = P(Y^x = 1)/(Y^x = 0)$. There are many others besides these.
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 2b:} List some estimators that can be used to quantify the odds ratio.
+\end{quotation}
+
+______________________________________________________________________________________________
 
 The estimand is the object we want to estimate. The **estimator** is an equation that allows us to use our data to quantify the estimand. Suppose, for example, we were explicitly intersted in quantifying the causal risk difference for the relation between smoking and CVD risk. To do this, we have to start by quantifying the associational risk difference, but there are many ways to do this, including ordinary least squares, maximum likelihood, or the method of moments.
 
@@ -182,11 +206,26 @@ Together, counterfactual consistency and no interference allow us to make some p
 $$ P( Y = 1 \mid X = x, C) = P(Y^x = 1 \mid X = x, C) $$
 A third assumption is **exchangeability**, which implies that the potential outcomes under a specific exposure ($Y^x$) are independent of the observed exposures $X$ [@Greenland1986,@Greenland1999,@Greenland2009]. If this holds, then we have: 
 $$ P(Y^x = 1 \mid X=x, C) = P(Y^x = 1 \mid C) $$
-If there is any confounding, selection, or information bias, the potential outcome under a specific exposure will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement.^[For an excellent discussion of why the potential outcomes are independent of the observed exposure under exchangeability, see Chapter 2 of @Hernan2015] What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
+If there is any confounding, selection, or information bias, the potential outcome will be associated with the observed exposure, and we cannot remove $X=x$ from the conditioning statement.^[For an excellent discussion of why the potential outcomes are independent of the observed exposure under exchangeability, see Chapter 2 of @Hernan2015] What this means is that the exposure is predictive of prognosis, independent of it's actual effect on the outcome. 
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 3:} Why is the word "exchangeable" used to describe this concept? What, precisely, is being "exchanged"?
+\end{quotation}
+
+______________________________________________________________________________________________
+
 
 Although it seems that we have successfully written the potential risk as a function of the observed data, we are in need of two more assumptions. The first is **correct model specification**. This assumption is required when we rely on models to estimate effects, but can be minimized or avoided by using semi- or non-parametric approaches. There are several ways in which this assumption can be violated, and these include the omission of relevant interaction terms, or adjusting for continuous covariates using linear terms only.
 
-The second is **positivity**,^[Also known as the experimental treatment assignment assumption.] and requires exposed and unexposed individuals within all levels of the confounder [@Mortimer2005,@Westreich2010a]. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with observations. When faced with positivity violations, methods must be used that are not affected. These include g estimation of a structural nested model, targeted minimum loss-based estimation, and the parametric g formula.
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 4:} Can you think of a relation between correct model misspecification and exchangeability?
+\end{quotation}
+
+______________________________________________________________________________________________
+
+The second is **positivity**,^[Also known as the experimental treatment assignment assumption.] and requires exposed and unexposed individuals within all levels of the confounder [@Mortimer2005,@Westreich2010a]. There are two kinds of positivity violations (non-positivity): structural (or deterministic) and stochastic^[The word **stochastic** is derived from the greek word "to aim," as in "to aim for a target."] (or random). Structural non-positivity occurs when individuals with certain covariate values cannot be exposed. For example, in occupational epidemiology work-status (employed/unemployed in workplace under study) is a confounder, but individuals who leave the workplace can no longer be exposed to a work-based exposure. Alternatively, stochastic non-positivity arises when the sample size is not large enough to populate all confounder strata with observations. When faced with positivity violations, methods must be used that are not affected.^[Warning: one cannot simply "avoid" positivity. In an extreme setting, nonpositivity means that those who were exposed in the sample are very unlikely to be exposed (and vice versa). In such a situation, it may not make sense to estimate the average treatment effect, because there is a subset of the population who may never actually be exposed. In this case, g estimation, cTMLE, and the parametric g formula actually estimate parameters that differ slightly from the ATE.] These include g estimation of a structural nested model, collaborative targeted minimum loss-based estimation, and the parametric g formula.
 
 \newpage
 \noindent {\Large \bf \underline{The Parametric G Formula}}
@@ -201,6 +240,14 @@ The third example will be with actual data from the National Survey of Family Gr
 
 Our final example will be the most complex. We will use data based on a randomized trial of daily low dose aspirin on pregnancy outcomes. We will deal with multiple time-points, and multiple competing outcomes. I will show you how to tailor implementation of the the g formula to a given study design.
 
+The parametric g formula is the first of three "g" methods developed by James Robins beginning in the mid-1980s. The other g methods are: g estimation of a structural nested model, and inverse probability weighted marginal structural models.
+
+Inverse probability weighted marginal structural models consist of two important parts: the marginal structural model, which is a model for potential outcomes (structural) averaged over the entire population (marginal). Inverse proabaility weights are a tool that enable estimation of the MSM parameters (e.g., weighted least squares or weighted maximum likelihood).
+
+G estimation of a structural nested model also consist of two parts: the structural nested model, which is a model for a contrast of potential outcomes (structural) within levels of past time-varying and baseline covariates (nested). G estimation is an **estimator** that takes advantage of the independence between the potential outcomes and the observed expsoure (i.e., exchangeability) to solve for the parameters of a SNM.
+
+Marginal structural and structural nested models target very different estimands. As we will see, the g formula is simply an equation that links potential outcomes to observed data (i.e., outcomes, exposures, confounders). It can be used to target the quantities defined in either marginal structural or structural nested models. As it turns out, if we are willing to model each of the terms in the (potentially lengthy) equation, can also use it to estimate the effects quantified by these models.
+
 \noindent {\Large \bf Example 0: Model-Based Standardization}
 
 Let's start with a simple simulated example, and presume it represents data to answer questions about the effect of treatment for HIV on CD4 count. The causal diagram representing this scenario is depicted in Figure 3. 
@@ -209,9 +256,12 @@ Let's start with a simple simulated example, and presume it represents data to a
 knitr::include_graphics("F3.pdf")
 ```
 Table 1 presents data from this simulated observational cohort study ($A=1$ for treated, $A=0$ otherwise).
+
 \begin{table}
 \caption{Example data illustrating the number of subjects ($N$) within each possible combination of treatment ($A$) and HIV viral load ($C$). The outcome column ($Y$) corresponds to the mean of $Y$ within levels of $A$ and $C$.}
+\begin{center}
 \begin{tabular}{lllll}
+&&&\\
 \hline
 $C$ & $A$ & $Y$ & $N$  \\
 \hline \hline
@@ -221,8 +271,11 @@ $C$ & $A$ & $Y$ & $N$  \\
 1 & 1  & 155.7 & 346820 \\
 \hline
 \end{tabular}
+\end{center}
 \end{table}
-The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate. Becuase the continuous outcome is summarized over each treatment $\times$ covariate level, we cannot estimate standard errors but will rather focus on estimating the parameter of interest.^[The bootstrap will be demonstrated in the empirical examples.] We will analyze these data using model-based standardization, which is equivalent to the parametric g formula in a time-fixed exposure setting.
+The CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate. Becuase the continuous outcome is summarized over each treatment $\times$ covariate level, we cannot estimate standard errors but will rather focus on estimating the parameter of interest.^[The bootstrap will be demonstrated in the Appendices.] We will analyze these data using model-based standardization, which is equivalent to the parametric g formula in a time-fixed exposure setting.
+
+\noindent {\bf Setup}
 
 We first start with the **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. In this simple setting, our estimand of interest is the marginal average causal effect on the difference scale:
 $$ E(Y^{a=1} - Y^{a=0})$$
@@ -230,7 +283,7 @@ This estimand tells us that we need to quantify two outcome averages: one that w
 
 Next, we examine our causal diagram to order our variables causally. The causal sequence of variables is: $C$ (first), $A$ (second), and $Y$ (third). To see why, note that in Figure 3 there are no variables that cause $C$, $A$ is caused by $C$, and $Y$ is caused by both $A$ and $C$. Becuase of this, $A$ cannot come before $C$ (an effect cannot precede its cause), nor can $Y$ come before $A$ or $C$. The causal ordering of our variables is therefore $C$, $A$, and $Y$.
 
-We then write down models for each variable.^[Recall: The "$\expit$" function is the inverse of the logit: $\expit(a) = 1/[(1+\exp(-a)]$.] 
+We then write down models for each variable.^[Recall: The "$\expit$" function is the inverse of the logit: $\expit(a) = 1/[(1+\exp(-a)]$.] How do we know which models to specify? We regress each variable against everything that comes before it.
 \begin{table}
 \begin{tabular}{rl}
 Variable & Model \\
@@ -240,13 +293,15 @@ $C$ & $P(C ) = \expit(\gamma_0)$ \\
 \end{tabular}
 \end{table}
 
-How do we know which models to specify? We regress each variable against everything that comes before it. However, we must ensure that we do not break the **cardinal rule of causal inference**: do not adjust for the future.
+ However, we must ensure that we do not break the **cardinal rule: do not adjust for the future.**
 
 Finally, we tie each of these models together to give us a pre-cursor to the g formula. To do this, we invoke the law of total probability, which states that the $P(A) = \sum_B P(A \mid B)P(B)$. This allows us to "average over" a conditional to obtain a marginal. In our case, the relevant conditional is the regression model for the outcome, and we have to average over the distributions of $A$ and $C$:
 $$ E(Y) = \sum_A \sum_C E(Y \mid A, C)P(A\mid C) P(C)$$
 To obtain the g formula from this expression, we replace all instances of $A$ with $A=a$ and remove $P(A \mid C)$
 $$ E(Y^a) = \sum_C E(Y \mid A=a, C) P(C)$$
 which holds under our identifiability assumptions.
+
+\noindent {\bf Implementation and Validation}
 
 We're now ready for **implementation**. Suppose we wanted to estimate the unconditional (i.e., marginal) mean outcome in the sample. There are two ways we can do this. The easy way would be to simply take the average in the sample:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
@@ -284,7 +339,11 @@ pY<-predict(mY,newdata=data.frame(A=pA,C=pC),type="response")
 mean(pY)
 ## END CODE SET 3
 ```
-The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions. To see why this works, suppose we're interested in the marginal (i.e., averaged over $C$) mean of $Y$ if $A=0$, and let's assume for illustrative purposes that $P(C=1) = 0.2$ (it's not in our example):
+The key is that $C$ is predicted, then $A$ is predicted using the $C$ predictions, and then $Y$ is predicted using the $A$ and $C$ predictions.
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Side Note:} To see why this works, suppose we're interested in the marginal (i.e., averaged over $C$) mean of $Y$ if $A=0$, and let's assume for illustrative purposes that $P(C=1) = 0.2$ (it's not in our example):
 \begin{table}
 \begin{tabular}{rl}
 $E(Y \mid A=0)$ & = $ \sum_C E(Y \mid A=0,C)P(C)$ \\
@@ -293,6 +352,10 @@ $E(Y \mid A=0)$ & = $ \sum_C E(Y \mid A=0,C)P(C)$ \\
 \end{tabular}
 \end{table}
 \noindent Note that, in the second line of the above, $E(Y \mid A=0,C=0)$ and $E(Y \mid A=0,C=1)$ are just the averages of $Y$ among those with $A=0,C=0$ and $A=0,C=1$, respectively. We can therefore replace these with the parameters from our model. In a dataset of 100 people with $A=0$, $\sim 80$ would have $C=0$ and $\sim 20$ would have $C=1$. Among those 100, the true average outcome for those with $C=0$ would be $\alpha_0$, and the true average outcome for those with $C=1$ would be $\alpha_0+\alpha_2$. Therefore, the average of $Y$ among these 100 people with $A=0$ would be precisely the weighted combination of averages that we need: $\alpha_0 \times 0.8 + (\alpha_0+\alpha_2) \times 0.2$. This is why we can use our data and/or predictions to implement the law of total probability.
+\end{quotation}
+
+______________________________________________________________________________________________
+
 
 Back to our original example, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). The mean of both these versions is the same: 125.0. This **validation** step tells us that our models are doing a decent job at recreating the averages that result from our actual data generating mechanisms.
 
@@ -309,6 +372,8 @@ mY_0<-mean(pY_0)
 ## END CODE SET 4
 ```
 \noindent The difference between these two means of interest is `r round(mY_1-mY_0,1)`, which we must **interpret**. 
+
+\noindent {\bf Interpretation}
 
 The basic question is whether we can interpret this difference as the causal effect of ART on CD4 count. To do this, we must refer back to the set of assumptions discussed in the section on identifiability. For counterfactual consistency, we must ask two key questions: 1) how many different ways are there to assign someone to ART?; and 2) will these different assignment mechanisms lead to different outcomes? Suppose, for instance, that 1/2 of the sample took ART with ibuprofen. Suppose further that ibuprofen reduces the efficacy of ART. We then have a situation where counterfactual consistency may be violated, becuase assigning someone to ART (without ibuprofen) will not lead to the same effect that was quantified in our study. If we assume that all of the different ways in which one can take ART will not really lead to different outcomes, we can assume counterfactual consistency.
 
@@ -328,6 +393,14 @@ In the previous example, we dealt with data that was neither longitudinal nor co
 ```{r, out.width = "200px",fig.cap="Causal diagram representing the relation between anti-retroviral treatment at time 0 ($A_0$), HIV viral load just prior to the second round of treatment ($Z_1$), anti-retroviral treatment status at time 1 ($A_1$), the CD4 count measured at the end of follow-up ($Y$), and an unmeasured common cause ($U$) of HIV viral load and CD4.",echo=F}
 knitr::include_graphics("F4.pdf")
 ```
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 5:} Does the fact that $U$ is unmeasured in Figure 4 create problems for our analysis? Why or why not?
+\end{quotation}
+
+______________________________________________________________________________________________
+
 Table 1 presents data from a hypothetical observational cohort study ($A=1$ for treated, $A=0$ otherwise). Treatment is measured at baseline ($A_0$) and once during follow up ($A_1$). The sole covariate is elevated HIV viral load ($Z=1$ for those with $>200$ copies/ml, $Z=0$ otherwise), which is constant by design at baseline ($Z_0=1$) and measured once during follow up just prior to the second treatment ($Z_1$). The outcome is CD4 count measured at the end of follow up in units of cells/mm$^3$. Again, the CD4 outcome in Table 1 is summarized (averaged) over the participants at each level of the treatments and covariate.
 
 \begin{table}
@@ -347,6 +420,8 @@ $A_0$ & $Z_1$ & $A_1$ & $Y$ & $N$  \\
 \hline
 \end{tabular}
 \end{table}
+
+\noindent {\bf Setup}
 
 The number of participants is provided in the rightmost column of Table 1. In this hypothetical study of one million participants we ignore random error (i.e., we will not focus on confidence interval estimation). Let's again start with the problem **setup**, where we define our estimand, order our variables causally, write down our models, and "tie" them together into the g formula. Here, we focus on the average causal effect of always taking treatment, $(a_0 = 1, a_1 = 1) \equiv \overline{a}_1=1$, compared to never taking treatment, $(a_0 = 0, a_1 = 0) \equiv \overline{a}_1=0$:
 \begin{equation*}
@@ -375,10 +450,12 @@ E(Y^{a_0,a_1}) = \sum_{Z_1} E(Y \mid A_1=a_1,Z_1,A_0=a_0)P(Z_1 \mid A_0=a_0 ).
 \end{equation*}
 \noindent which holds under our identifiability assumptions.
 
+\noindent {\bf Implementation}
+
 Let's now **implement** the g formula in our software programs. We will again start by estimating the unconditional (i.e., marginal) mean outcome in the sample, by first taking the sample average:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
 ## CODE SET 5
-# arrange into long data
+# arrange into wide data
 a0<-c(0,0,0,0,1,1,1,1);z1<-c(0,0,1,1,0,0,1,1);a1<-c(0,1,0,1,0,1,0,1)
 y<-c(87.29,112.11,119.65,144.84,105.28,130.18,137.72,162.83)
 N<-c(209271,93779,60654,136293,134781,60789,93903,210527)
@@ -415,7 +492,10 @@ pY<-predict(mY,newdata=data.frame(a0=pA0,z1=pZ1,a1=pA1),type="response")
 mean(pY)
 ## END CODE SET 6
 ```
-Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario: by consistency and no interference, it is the outcome distribution that would be observed if the exposure distribution was what actually occurred in our data. This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is an important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.^[Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.]
+
+\noindent {\bf Validation}
+
+Once again, we have two versions of our outcome: the actual data (Y) and the predictions based on our models (pY). These latter predictions are obtained under a very specific scenario: by consistency and no interference, it is the outcome distribution that would be observed if the exposure distribution was what actually occurred in our data.\marginnote{$^{16}$ Note the evasive language ("some assurance", "suggests", etc). This is because unbiased causal effect estimation is still possible if the natural course and empirical results are very different. It is also possible that a parameter estimate is biased if the natural course and empirical results are identical. Thus, this validation step provides evidence that is neither necessary nor sufficient for valid estimation. However, becuase these scenarios are unlikely to occurr in practice, the evidence provided by this validation step is informative.} This scenario, called the **natural course**, is in contrast to what might have been observed if everyone were exposed/unexposed at both time-points. Estimating the natural course is an important **validation step** when using the parametric g formula. If the empirical results align closely with the natural course, this offers some assurance that our models are not grossly mis-specified. On the other hand, if our empirical and natural course results differ substantially, this suggests that something may be wrong.$^{16}$
 
 In our example, the empirical and natural course means are again the same: `r round(mean(pY),1)`.
 
@@ -433,9 +513,22 @@ pY_0<-predict(mY,newdata=data.frame(a0=0,z1=pZ_0,a1=0),type="response")
 mY_0<-mean(pY_0)
 ## END CODE SET 7
 ```
+
+\noindent {\bf Interpretation}
+
 \noindent The difference between these two means is `r round(mY_1-mY_0,1)` cells/mL (a 25 cell/mL difference for each time-point, which corresponds to the true effect in our simulated scenario). If we make the same assumptions as in the previous example (counterfactual consistency, no interference, exchangeability, no model mis-specification, positivity), we can interpret this as our causal effect of interest.
 
-Before moving on to our next examples, let's take another look at our second simulated example. According to the causal diagram in Figure 3, we should be able to obtain an unbiased estimate of the $A_0$ and $A_1$ effects using simple regression models. For example, if we adjust for $Z_1$, there is no open back-door path from $A_1$ to $Y$. If we run the code to do this, we find this is actually the case:
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Side Note:} The parametric g formula is subject to what is known as the "g null paradox," which arises when the true exposure effect is null. In this setting, it is possible that the parametric g formula will estimate a non-null effect. Not much is known about the g null paradox, but it is currently the topic of active research by several groups.
+\end{quotation}
+
+______________________________________________________________________________________________
+
+
+
+Before moving on to our next examples, let's take another look at our second simulated example. According to the causal diagram in Figure 4, we should be able to obtain an unbiased estimate of the $A_0$ and $A_1$ effects using simple regression models. For example, if we adjust for $Z_1$, there is no open back-door path from $A_1$ to $Y$. If we run the code to do this, we find this is actually the case:
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
 # CODE SET 8
 round(coef(glm(y~a1+z1,data=D,family=gaussian("identity"))),1)
@@ -452,7 +545,282 @@ However, doing this overestimates the true effect by `r round(coef(glm(y~a0,data
 Note that while this estimate is not incorrect by itself, if we were intersted in estimating $E(Y^{\overline{a}_1=1}-Y^{\overline{a}_1=0})$, and we added the two estimates from these simple regression models to do this, we would be wrong because we'd be counting a portion of the $A_1$ effect twice.
 
 \newpage
-\noindent {\Large \bf Example 2: Mediation NSFG}
+\noindent {\Large \bf Example 2: Mediation Analysis Using the Natural Survey of Family Growth}
+
+In this second example, we will look at how to conduct mediation analyses using the parametric g formula with data from the publicly available Natural Survey of Family Growth [@NSFG2014]. For our purposes, we will ignore the complex survey sampling design. In this example, we will have the opportunity to get a close look at several controversial issues in causal inference. Notably, we will talk about the challenges in identifying, estimating, and interpreting natural direct and indirect effects [@Naimi2014c].^[There has recently been explosion in the number of estimands that can be defined to conduct mediation analyses. Among these include standardized direct effects [@Didelez2006], randomized interventional analogues to natural direct and indirect effects [@VanderWeele2014], "organic" direct and indirect effects [@Lok2016], and stochastic mediation contrasts [@Naimi2014b].] We will also look at the issues involved in estimating the effects of so-called "nonmanipulable" expsoures [@Hernan2008a].
+
+Two types of effects are commonly used in mediation analysis. The first are controlled direct effects, which quantify the exposure effect under an intervention that sets the mediator to a specific value for all individuals in the population. Controlled indirect effects are notably difficult to conceptualize, and instead are defined as a contrast between the total and controlled direct effect in the absence of exposure-mediator interactions [@Kaufman2004]. The second type of direct effects are "natural" (which include "total" or "pure") effects. The natural direct effect quantifies exposure effect that would be observed holding the mediator fixed at the value it would have taken under some referent exposure value. Similarly, natural indirect effect quantifies the effect the exposure has through the mediator by changing the mediator from the value it would have taken under some referent exposure to the value it would have taken under some specific alternate exposure (all while holding the exposure fixed).
+
+Here, we will estimate natural and controlled effects to evaluate the extent to which the racial disparity in preterm birth is "explained" by the manner in which a woman pays for the delivery of a pregnancy. As we will see, this question is itself problematic, but was chosen specifically to illustrate some rather subtle issues. On top of the problematic nature of the question itself,^[While the example here involves questions that might typically be asked in social epidemiology, these issues are also routinely encountered in other areas, including lifecourse epidemiology, research on the effects of growth, weight, obesity, or age.] we will have the opportunity to go over some of the challenges in identifying, interpreting, and estimating natural direct and indirect effects. Estimating controlled effects are also problematic in this setting, and we will see why. 
+
+In spite of the challenges (which are not insignificant) inherent in using the NSFG data to answer this question, its didactic value is clear. It will give us plenty of opportunity to discuss the reasons for which natural effects are not identifiable,^[Note that Lin et al have developed a "parametric mediational g formula" algorithm for estimating what are known as randomzied interventional analogues to natural direct and indirect effects [@Lin2017]. This is a useful contribution that resolves the problems related to identifying and estimating natural effects.] and illustrate the challenges in estimating any "effects" of exposures such as race or payment method for delivery. 
+
+\noindent {\bf Setup: Natural and Controlled Effects}
+
+Let's begin with **setting up** the problem. In this setup section, we will again define our estimands of interest, causally order our variables, specify parametric models for each, and then link them together using the law of total probability. In our NSFG data, we will let $X$ denote race, $M$ denote the method of payment for delivery, and $Y$ denote preterm birth (1 if less than 37 weeks, 0 otherwise). We will also assume that the only confounders of the relation between race and the method of payment, or between race and preterm birth is maternal age.^[This is actually a realistic and defensible assumption, provided we are interested in quantifying disparities, and not estimating the "effects" of race [@Naimi2016c]] We will also let $C_{MY}$ denote confounders of the relation bewteen preterm birth and the method of delivery payment. In our analysis, these will include maternal age, prenatal care, the wantedness of a pregnancy, marital status, educational level, and the gestational age of a prior pregnancy.
+
+The causal diagram that will be motivating our analysis will be as follows:
+```{r, out.width = "200px",fig.cap="Causal diagram representing the relation between race ($X$), method of payment for delivery ($M$), and preterm birth ($Y$). In this diagram, $C_{MY}$ represent $M$-$Y$ confounders that are also associated with race.",echo=F}
+knitr::include_graphics("FigureDag.pdf")
+```
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 6:} Can you identify the structural similarities between Figures 4 and 5?
+\end{quotation}
+
+______________________________________________________________________________________________
+
+
+Conceptually, the natural direct effect is the expected change in the outcome if we were to "freeze" the mediator value for each person at the level it would have taken had the person's exposure been some referent level (but when, in actuality, the person's exposure status changes). Similarly, the natural indirect effect is the expected change in the outcome when the mediator changes as though the exposure had (but when, in actuality, the exposure doesn't change). These natural effects are divided into two types: pure and total. 
+
+The pure direct effect is the exposure effect if the mediator were held at its potential value under $X=0$:
+
+$$ PDE = E \big (Y^{1,M^{0}}\big ) - E \big (Y^{0,M^{0}}\big ), $$
+
+The total direct effect is identical to the pure direct effect, except that the mediator is held at its potential value under $X=1$:
+$$ TDE = E \big (Y^{1,M^{1}}\big ) - E \big (Y^{0,M^{1}}\big ), $$
+
+The controlled direct effect is also very similar, except that the mediator is held fixed at a given level uniformly in the population:
+$$ CDE(m) = E \big (Y^{x,m}\big ) - E \big (Y^{x^*,m}\big ) $$
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Study Question 7:} Under what conditions will $TDE = PDE = CDE(m=0) = CDE(m=1)$?
+\end{quotation}
+
+______________________________________________________________________________________________
+
+For all three estimands, the outcome $Y^{x,M^{x^*}}$ represents the potential outcome that would have been observed if $X$ were set to $x$ \emph{and} under the potential mediator value that would have been observed if $X$ were set to some other value $x^*$. Notice how the pure and total direct effects require a union of two logically incompatible states?: the outcome under exposure $x$ with the mediator set to what it would have been under $x^*$. Because no single individual can ever exist with exposure values $x$ and $x^*$, this composite counterfactual requires information that can only exist in two separate "worlds," and has thus been referred to as a "cross-world" counterfactual [@Richardson2013].
+
+In a similar vein, the pure and total indirect effects are:
+$$ PIE = E \big (Y^{0,M^{1}}\big ) - E \big (Y^{0,M^{0}}\big ), $$
+and,
+$$ TIE = E \big (Y^{1,M^{1}}\big ) - E \big (Y^{1,M^{0}}\big ). $$
+
+These are the estimands that we will seek to estimate with the parametric g formula. Continuing our **setup**, we must next causally order our variables, including all of the $C_{MY}$.
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Side Note:} Thus far, we've been causally ordering {\bf all} of the variables in our causal diagrams. In actuality, we only have to order the variables that come after the exposure. We do not have to order the baseline variables, or the variables at the first time-point that are not affected by the exposure. Becuase there are no baseline variables in our mediation example (no confounders of the race-preterm birth relation), we will also order all our variables here too. But in the next example, we will see how to deal with pre-exposure variables.
+\end{quotation}
+
+______________________________________________________________________________________________
+
+In Table 3, the race variables as coded as 1="non-Hispanic Black" and 0="non-Hispanic white". The mediator was payment for delivery, and was coded as 1="Medicaid/government assistance", and 0="insurance only, own income and insurance, or other combinations of payment method." Thus, for example, if we set $M=0$, then the CDE is interpreted as the effect of race that would be observed if everyone paid for delivery using insurance only, own income and insurance, or other combinations of payment method.^[Warning: as we will see in the interpretation section, we will not be able to interpret any of these results as "effects".]
+
+\begin{table}[h]
+\small\sf\centering
+\caption{Assumed causal ordering of variables in the National Survey of Family Growth, 2006-2010 and 2011-2013 waves.\label{order}}
+\begin{tabular}{lll}
+\toprule
+Order & Notation & Variable \\
+\midrule
+9 & $Y$ & Preterm birth \\
+8 & $M$ & Payment for delivery \\
+7 & $C_{(7)MY}$ & Prenatal care \\
+6 & $C_{(6)MY}$ & Wantedness of the pregnancy \\
+5 & $C_{(5)MY}$ & Gestational age at birth of prior pregnancy \\
+4 & $C_{(4)MY}$ & Marital status at conception \\
+3 & $C_{(3)MY}$ & Maternal education at conception \\
+2 & $X$ & Race \\
+1 & $C_{XY}$ & Maternal age \\
+\bottomrule
+\end{tabular}\\[10pt]
+\end{table}
+
+Now that we have chosen a causal order, we to specify models for each variable in Table 3. Instead of writing each model out as before, we will simply note that each variable in Table 3 is binary, prompting use of logistic regression. Furthermore, each variable will be regressed against everything that comes before it in Table 3.^[If this is not clear, the code implementing this below should help.] Finally, we have to tie all these models together using the law of total probability to obtain the g formula for our mediation questions. Doing so, we get:
+\begin{equation*}
+\begin{split}
+E(Y^{x,M^{x^*}}) = & \sum_{C_{MY}} E(Y \mid X=x,M^{x^*}, C_{MY}, C_{XY} ) P(M \mid X = x^*,C_{MY}) \\ 
+& \hskip .5cm \prod_{j=7:3} P(C_{(j)MY} \mid X=x,C_{(j-1)MY}, \ldots, C_{(3)MY}) P(C_{XY}), 
+\end{split}
+\end{equation*}
+for the natural effects, and 
+\begin{equation*}
+\begin{split}
+E(Y^{x,m}) = & \sum_{C_{MY}} E(Y \mid X=x,M=m, C_{MY}, C_{XY}) \\ 
+& \hskip .5cm \prod_{j=7:3} P(C_{(j)MY} \mid X=x,C_{(j-1)MY}, \ldots, C_{(3)MY}) P(C_{XY}), 
+\end{split}
+\end{equation*}
+for the controlled effect. 
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Side Note:} There has been some controversy over natural effects. There are several reasons for this controversy. One of them is the fact that defining natural effects requires outcomes under two logically incompatible exposure states. The other is more complicated, but arises when mediator outcome confounders are affected by the exposure. In this situation, mediator-outcome confounders affected by the exposure are known as "recanting witnesses." On the one hand, they signal to the mediator that they are in one state (unexposed) while simultaneously signalling to the outcome that they are in another state (exposed). With the exception of Naimi et al (2014), this issue has not been discussed in the health sciences literature.
+\end{quotation}
+
+______________________________________________________________________________________________
+
+\noindent {\bf Implementation}
+
+Now that we have setup the problem, lets begin with implementation. We first import and explore the NSFG data:
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+setwd("~/Dropbox/Documents/Research/Presentations/SER 2017/SER Workshop/pgf_course-master/")
+nsfg<-read_sas("n2.sas7bdat")
+head(nsfg,3);tail(nsfg,3)
+# sample size
+nrow(nsfg)
+
+# verify no missing
+missFunc<-function(x){sum(is.na(x))}
+sum(apply(nsfg,2,missFunc))
+
+# tabular analyses
+table(nsfg$pay_d)
+table(nsfg$HISPRACE)
+table(nsfg$ptb)
+```
+
+We should also look at the crude associations between the exposure, mediator, and outcome: 
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+# risk differences between exposure, mediator, and outcome
+## preterm birth and race
+coef(lm(ptb~HISPRACE,data=nsfg))[2]*100
+## preterm birth and delivery payment 
+coef(lm(ptb~pay_d,data=nsfg))[2]*100
+## delivery payment and race
+coef(lm(pay_d~HISPRACE,data=nsfg))[2]*100
+```
+
+
+
+```{r fig.height = 4, fig.width = 4, fig.align = "center",echo=T,fig.star=T,tidy=F,highlight=T,message=F}
+# look at propensity score overlap for mediator (pay_d)
+mod<-glm(pay_d~HISPRACE+pnc_d20+educ_d+marit_d
+         +want_d+mage_c1+mage_c2+mage_c3+wksg_d,data=nsfg,family=binomial("logit"))
+nsfg$pM<-predict(mod,type="response")*nsfg$pay_d+
+  (1-predict(mod,type="response"))*(1-nsfg$pay_d)
+
+ggplot(nsfg,aes(pM,color=factor(HISPRACE))) + 
+  theme_light() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) + 
+  labs(x = "Propensity Score",y = "Density") + 
+  scale_colour_brewer(palette="Set1") +
+  geom_density() + theme(
+  legend.position = c(.5, .95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(6, 6, 6, 6)
+)
+
+```
+
+Now that we've explored the data, let's fit models for each equation in the g formula.
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+# logistic models for joint distribution of observed data
+## preterm birth 
+m9<-glm(ptb~pay_d+pnc_d20+want_d+wksg_d+
+          marit_d+educ_d+HISPRACE+pay_d*HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## mediator
+m8<-glm(pay_d~pnc_d20+want_d+wksg_d+
+          marit_d+educ_d+HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## pnc
+m7<-glm(pnc_d20~want_d+wksg_d+
+          marit_d+educ_d+HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## wantedness
+m6<-glm(want_d~wksg_d+
+          marit_d+educ_d+HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## prior gestational age at birth
+m5<-glm(wksg_d~marit_d+educ_d+HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## marital status
+m4<-glm(marit_d~educ_d+HISPRACE+
+          mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+## educational status
+m3<-glm(educ_d~HISPRACE+mage_c1+mage_c2+mage_c3,data=nsfg,family=binomial("logit"))
+```
+Next we select a Monte Carlo sample of 50,000, and keep only the baseline data (maternal age and race). We then predict the follow up under the exposure and mediator scenarios we need to quantify our estimands:
+```{r echo=T,fig.star=T,tidy=F,highlight=T}
+index<-sample(1:nrow(nsfg),5e4,replace=T)
+mc<-nsfg[index,c("HISPRACE","mage_c1","mage_c2","mage_c3")]
+head(mc);nrow(mc)
+
+pgfm<-function(exposure,mediator){
+  if(!is.null(exposure)){
+    mc$HISPRACE<-exposure
+  }
+  e<-as.numeric(predict(m3,newdata=mc,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(mc,educ_d=e)
+  m<-as.numeric(predict(m4,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,marit_d=m)
+  w<-as.numeric(predict(m5,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,wksg_d=w)
+  wnt<-as.numeric(predict(m6,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,want_d=wnt)
+  pnc<-as.numeric(predict(m7,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,pnc_d20=pnc)
+  if(is.null(mediator)){
+      pay<-as.numeric(predict(m8,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,pay_d=pay)
+  } else if(mediator=="n1"){
+      ND<-data.frame(ND,HISPRACE=1)
+      pay<-as.numeric(predict(m8,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,pay_d=pay)
+  } else if(mediator=="n0"){
+      ND<-data.frame(ND,HISPRACE=0)
+      pay<-as.numeric(predict(m8,newdata=ND,type="response")>
+                  runif(nrow(mc)));ND<-data.frame(ND,pay_d=pay)
+  } else{
+      pay<-mediator;ND<-data.frame(ND,pay_d=pay)
+  }
+  ptb<-as.numeric(predict(m9,newdata=ND,type="response")>
+                  runif(nrow(mc)))
+  return(ptb)
+}
+
+Yn<-pgfm(NULL,NULL) # natural course
+Y1<-pgfm(1,NULL) # NH Black
+Y0<-pgfm(0,NULL) # NH White
+Y1mn0<-pgfm(1,"n0") # NH Black, NH White method of payment
+Y0mn0<-pgfm(0,"n0") # NH White, NH White method of payment
+Y1mn1<-pgfm(1,"n1") # NH Black, NH Black method of payment
+Y0mn1<-pgfm(0,"n1") # NH White, NH Black method of payment
+Y1m0<-pgfm(1,0) # NH Black, Insurance, Own Income, or Other method of payment
+Y0m0<-pgfm(0,0) # NH White, Insurance, Own Income, or Other method of payment
+
+# disparity
+(mean(Y1)-mean(Y0))*100
+# PDE
+(mean(Y1mn0)-mean(Y0mn0))*100
+# PIE
+(mean(Y0mn1)-mean(Y0mn0))*100
+# TDE
+(mean(Y1mn1)-mean(Y0mn1))*100
+# TIE
+(mean(Y1mn1)-mean(Y1mn0))*100
+# CDE
+(mean(Y1m0)-mean(Y0m0))*100
+```
+
+\noindent {\bf Validation and Interpretation}
+
+After quantifying these associations, we must now validate, and interpret them in light of the assumptions listed above. First we compare the natural course preterm birth generated from our g formula algorithm to the observed preterm birth outcomes in the NSFG. We can do this using several measures, but to keep things simple we will look at means. The natural course mean for preterm birth was `r round(mean(Yn),3)` while the preterm birth mean in the empirical data was `r round(mean(nsfg$ptb),3)`.
+
+Let's start with interpreting the controlled direct effect estimate of `r round((mean(Y1m0)-mean(Y0m0))*100,3)`. From the point of view of the estimand alone, the CDE is interpreted as (for example) the exposure effect that would be observed if everyone's exposure was set to 1 and the mediator was set to 0, versus if everyone's exposure was set to 1 and the mediator was set to 0:
+$$ CDE(0) = E \big (Y^{1,0}\big ) - E \big (Y^{0,0}\big ) $$
+Our exposure was "race," which was measured as a combination of a response to a questionnaire that asked "what is your race?" and "are you Hispanic or Latina, or of Spanish origin?" To interpret the association we quantified as a controlled direct effect, we must assume counterfactual consistency, which allows us to state that the observed outcome among those who classified themselves as non-Hispanic black is, in fact, what we would have observed had we (somehow) set them to be non-Hispanic black. Unfortunately, there is no conceivable intervention that we could conjure up to set individuals to be, e.g., "non-Hispanic black." For this reason, self or other reported measures of race cannot be construed as counterfactually causal.
+
+______________________________________________________________________________________________
+\begin{quotation}
+\noindent \textsc{Side Note:} This has been a somewhat controversial issue. But the controversy stems (in large part) from a misunderstanding. "Race," measured as the response to questions about whether one considers oneself non-Hispanic Black, White, Hispanic, etc, cannot be causal. But these measures do not quantify the fundamental issues that underlie health disparities. Race relations, on the other hand, can be affected by social policy and a host of other interventions. Such interventions can easily be incorporated into the causal modelling framework without issue. Numerous examples exits, and include the Civil Rights Act of the mid 1960s, the desegregation of hospitals, and the repeal of unjust laws, which are all (policy) interventions, far removed from the simplistic classification schemes commonly used to represent "race."
+\end{quotation}
+
+______________________________________________________________________________________________
+
+Counterfactual consistency is a fundamental assumption in that most other assumptions depend on it. Consider, for example, the arrow from $C_{XY}$ to $X$ in Figure 5. This arrow implies that there is some mechanism by which we can affect race. Translated into the counterfactual world, this means that we would somehow be able to intervene so as to set $X$ ("race") to some specified value. But we have just argued that there is no such intervention. This raises the question about what it means for self reported race to be confounded. A confounder is a variable that affects both the exposure and the outcome. But if the expsoure can't be affected, how can it be confounded?
+
+Points for further discussion:
+\begin{itemize}
+  \item Natural Effects: Cross World Counterfactuals and Recanting Witness
+  \item Causal inference in social epidemiology 
+  \item Other
+\end{itemize}
 
 \newpage
 \noindent {\Large \bf Example 3: Per protocol effect of aspirin on fetal loss}
@@ -485,52 +853,66 @@ unless compliance is unassociated with study withdrawal and with any measured or
 **Empirical Data**
 We use data from $1,228$ women enrolled in the EAGeR study to illustrate the use of the parametric g formula to adjust for noncompliance. The design and protocols used for the EAGeR study have been documented [@Schisterman2013]. Briefly, EAGeR data were obtained from a multicenter, block randomized, double-blind, placebo-controlled trial. Eligible women were between 18-40 years of age, actively trying to conceive, and experienced one or two documented pregnancy losses. Women were randomized to receive 81 mg aspirin per day ($N=615$) or placebo ($N=613$); all received 400 mcg folic acid in addition. 
 
-Follow-up occurred for $\leq 6$ menstrual cycles while attempting to conceive, and throughout pregnancy for those who conceived. Planned study visits occurred at least monthly. Conception was determined via hCG and confirmed by 6.5 week ultrasound. For women who conceived, treatment was continued until 36 weeks gestation. A total of 286,844 person-days of data from daily dairies, study questionnaires, and clinical and telephone evaluations were collected from the EAGeR participants. From these sources, we compiled a dataset with information on baseline, time-dependent, and outcome covariates. Baseline covariates included randomization indicator, randomization date, age and body mass index at randomization, income, race/ethnicity, education, marital status, employment status, study site. Time-dependent covariates included compliance, vaginal bleeding, gastro-intestinal symptoms, and time to conception. The primary study outcome for the trial was the proportion of live births. Women were followed from randomization through pregnancy for live birth or pregnancy loss. To facilitate open access to the data and software programs, here we present results based on a synthetic copy of the EAGeR data. This synthetic copy was naturally created as a by-product of the g computation algorithm fit to the original EAGeR trial data.
-```{r include=F}
-library(devtools)
-install_github("ainaimi/gFormula")
-library(gFormula)
-```
-We can download this synthetic copy of the EAGeR data from GitHub. The data are arranged in long form (one row for each person month). These data were coarsened into `r nrow(aspirin)` person-months:
+Follow-up occurred for $\leq 6$ menstrual cycles while attempting to conceive, and throughout pregnancy for those who conceived. Planned study visits occurred at least monthly. Conception was determined via hCG and confirmed by 6.5 week ultrasound. For women who conceived, treatment was continued until 36 weeks gestation. A total of 286,844 person-days of data from daily dairies, study questionnaires, and clinical and telephone evaluations were collected from the EAGeR participants. From these sources, we compiled a dataset with information on baseline, time-dependent, and outcome covariates. Baseline covariates included randomization indicator, randomization date, age and body mass index at randomization, income, race/ethnicity, education, marital status, employment status, study site. Time-dependent covariates included compliance, vaginal bleeding, gastro-intestinal symptoms, and time to conception. The primary study outcome for the trial was the proportion of live births. Women were followed from randomization through pregnancy for live birth or pregnancy loss. To facilitate open access to the data and software programs, here we present results based on a synthetic copy of the EAGeR data. This synthetic copy was naturally created as a by-product of the g computation algorithm fit to the original EAGeR trial data. We can download this synthetic copy of the EAGeR data from GitHub (aspirin.txt). The data are arranged in long form (one row for each person month).
 ```{r echo=T,fig.star=T,tidy=F,highlight=T,message=F}
 ## CODE SET NN
-# download synthetic EAGeR data
-#install.packages("devtools")
-library(devtools)
-install_github("ainaimi/pgf")
-library(pgf)
-head(aspirin[names(aspirin) %in% c("id","study_month","treatment","y")],3)
-tail(aspirin[names(aspirin) %in% c("id","study_month","treatment","y")],3)
+# import synthetic EAGeR data
+aspirin<-read.table("aspirin.txt",header=T,sep="\t")
+head(aspirin[names(aspirin) %in% c("id","study_month","treatment","final_outcome")],3)
+tail(aspirin[names(aspirin) %in% c("id","study_month","treatment","final_outcome")],3)
 ## END CODE SET NN
 ```
-
-Bottle-weight measurements taken at regular intervals over follow-up were used to quantify compliance. Let's look at how compliance patterns differed between the treatment and control group:
-```{r, out.width = "200px",fig.cap="Proportion compliant over the course of follow-up among 1,228 participants in the EAGeR trial, 2006-2012. Lines obtained from a local kernel regression smoother.",echo=F}
-knitr::include_graphics("compliance_plot1.png")
+There were a total of `r nrow(aspirin)` person-months, and `r nrow(aspirin[aspirin$last==1,])` women in the sample we will use to implement the g formula. Bottle-weight measurements taken at regular intervals over follow-up were used to quantify compliance. Let's look at how compliance patterns differed between the treatment and control group:
+```{r, fig.height = 4, fig.width = 4, fig.align = "center",echo=T,fig.star=T,tidy=F,highlight=T,message=F}
+aspirin$mm1<-aspirin$study_month-1;span<-.6
+par(mar = c(5,5,2,2),mgp = c(3, .5, 0))
+lo<-loess(compliance~mm1,data=aspirin,span=span)
+j <- order(aspirin$mm1)
+plot(aspirin$mm1[j],lo$fitted[j],type="l",las=1,lwd=2,col="white",axes=F,
+     ylim=c(0,1),xlim=c(-0.25,14.25),xlab=NA,ylab=NA,xaxs="i",yaxs="i")#
+for(k in 1:2){
+  lo<-loess(compliance~mm1,data=aspirin[aspirin$treatment==k-1,],span=span)
+  j <- order(aspirin[aspirin$treatment==k-1,]$mm1)
+  lines(aspirin[aspirin$treatment==k-1,]$mm1[j],lo$fitted[j],ylim=c(0,1),
+        lwd=1,col=c("red","blue")[k])#
+}
+mtext(side=1,line=2,"Month Since Randomization")
+mtext(side=2,line=2,"Proportion Compliant")
+axis(side=2,las=1,col="black",lwd=1,tcl=-.1)
+axis(side=1,las=1,lwd=1,tcl=-.1)
+legend(6,.2,legend=c("Treatment","Placebo"),lty=c(1,1),lwd=c(2.5,2.5),
+       col=c("blue","red"),bty="n")
+box()
 ```
 
-This Figure shows a moderate degree of noncompliance over early follow-up. Overall, non-compliance was 5.8\% lower among women randomized to aspirin versus placebo (95\% CI: -9.7, -1.9). Non-compliance was also associated with key demographic and clinical characteristics. Compliance among self reported white women was 76\%, versus 65\% among women of other races (difference: 10.4\%; 95\% CI: 1.4, 20.2). A similar compliance pattern was observed between married versus unmarried women. There were also moderate associations between time-varying covariates and compliance as well. For example, the odds of complying with treatment in the month following conception was 0.85 times the odds of complying prior to conception (95\% CIs: 0.75, 0.97). These results suggest important differences in compliance by baseline and time-dependent characteristics. These must be properly accounted for when estimating the effect of taking aspirin. 
+This Figure shows a moderate degree of noncompliance that was slightly higher in the placebo group over early follow-up. Let's also look at the outcome distributions including live birth, pregnancy loss, and end of follow-up without pregnancy (no pregnancy) among all women in the EAGeR trial:
+```{r include=F}
+library(boot)
+a<-round((coef(lm(live_birth~treatment,data=aspirin[aspirin$last==1,]))%*%c(0,1))*100,2)
 
-Let's also look at the outcome distributions including live birth, pregnancy loss, and end of follow-up without pregnancy (no pregnancy) among all women in the EAGeR trial:
+ITT <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula,data=d)
+  return(summary(fit)$coef[2,1])
+}
+set.seed(123)
+aa1<-coef(lm(live_birth~treatment,data=aspirin[aspirin$last==1,]))[2]
+bobj<-boot(data=aspirin[aspirin$last==1,],statistic=ITT,R=500,formula=live_birth~treatment)
+aa2<-boot.ci(bobj,type="norm")$normal[,c(2,3)]
+```
 ```{r echo=T,fig.star=T,tidy=F,highlight=T}
-t1a<-addmargins(table(aspirin[aspirin$last==1,]$y,aspirin[aspirin$last==1,]$treatment))
-attributes(t1a)$dimnames[[1]]<-c("Live Birth ($Y$)","Pregnancy Loss ($D$)",
-                                 "Withdrawal ($C$)","No Pregnancy ($S$)","Total")
+t1a<-addmargins(table(aspirin[aspirin$last==1,]$final_outcome,
+                      aspirin[aspirin$last==1,]$treatment))
+attributes(t1a)$dimnames[[1]]<-c("Live Birth (Y)","Pregnancy Loss (D)",
+                                 "Withdrawal (C)","No Pregnancy (S)","Total")
 attributes(t1a)$dimnames[[2]]<-c("Placebo","Aspirin","Total")
 t1a
 ```
-
-This Table shows the total number of each outcome, overall and within treatment and placebo groups, and can be used to compute the ITT risk differences/ratios. Figure \ref{ITT_CDF} shows the cumulative sub-distribution functions for live birth and pregnancy loss among women allocated to treatment versus placebo [@Fine1999]. 
-
-```{r, out.width = "200px",fig.cap="Cumulative sub-distribution functions from 1,228 women in the EAGeR data for live birth (top panel) and pregnancy loss (bottom panel) among those assigned to treatment versus placebo.",echo=F}
-knitr::include_graphics("ITT_CDF.png")
-```
-
-This figure shows a moderate effect of treatment assignment on live birth, but no effect of treatment assignment on pregnancy loss, as was previously found by [@Schisterman2014]. The 15 month ITT risk differences of aspirin assignment on live birth and pregnancy loss in our synthetic data were 4.47 (95\% CI: -2.73, 11.66) and 0.29 (-3.76, 4.34), respectively. Because of the design of the EAGeR study, there were no live births prior to 5 months on study. Follow up was stopped if conception did not occur within 6 months of study start. These design features will be used when we implement the parametric g formula, as explained below.
+This Table shows the total number of each outcome, overall and within treatment and placebo groups, and can be used to compute the ITT risk differences/ratios. In our synthetic data, the overall risk differences of aspirin assignment on live birth was `r a` (95\% CI: `r round(aa2[1]*100,2)`,`r round(aa2[2]*100,2)`). Because of the design of the EAGeR study, there were no live births prior to 5 months on study. Follow up was stopped if conception did not occur within 6 months of study start. These design features will be used when we implement the parametric g formula, as explained below.
 
 **The Parametric G Formula for EAGeR**
 
-We will again rely on the Monte Carlo method to estimate the expectations needed for the per protocol effect. To do this, we need to **setup** the problem, which starts with assuming a causal ordering of each relevant variable for any given month on study: 
+We will again rely on the Monte Carlo method to estimate the expectations needed to quantify the per protocol effect. To do this, we need to **setup** the problem, which starts with assuming a causal ordering of each relevant variable for any given month on study: 
 \begin{table}[h]
 \small\sf\centering
 \caption{Assumed causal ordering of variables in any given month among 1,228 women in the EAGeR study, 2006-2012.\label{order}}
@@ -549,13 +931,13 @@ Order & Notation & Variable \\
 \bottomrule
 \end{tabular}\\[10pt]
 \end{table}
-This ordering implies that, at any given month, a woman decision to comply with her assigned treatment will depend on that month's bleeding and GI symtoms. This decision to comply will then affect conception. Bleeding, GI symptoms, compliance, and conception will then affect the decision to remain in the study or withdraw. If the woman remains on study, and did not yet conceive, her follow-up may end without pregnancy. If she does conceive, the conception may end in pregnancy loss, or live birth. If, at any given time point, the true ordering of compliance with respect to other variables is unknown, sensitivity analyses in which different orderings are evaluated is required (see validation section).
+This ordering implies that, at any given month, a woman's decision to comply with her assigned treatment will depend on that month's bleeding and GI symtoms. This decision to comply will then affect conception. Bleeding, GI symptoms, compliance, and conception will then affect the decision to remain in the study or withdraw. If the woman remains on study, and did not yet conceive, her follow-up may end without pregnancy. If she does conceive, the conception may end in pregnancy loss, or live birth. If, at any given time point, the true ordering of compliance with respect to other variables is unknown, sensitivity analyses in which different orderings are evaluated is required (see validation section).
 
 Even though we assume bleeding and GI symptoms are temporally (causally) prior to compliance in month $j$, the g formula allows compliance in month $j$ to affect bleeding and GI symptoms in all months $>j$. That is, this presumed ordering does not preclude the possibility that variables in prior months may affect variables anywhere in the ordering in subsequent months, with the exception of terminal events (e.g., live birth, pregnancy loss). Furthermore, though the variables in this Table cannot affect baseline variables (denoted $V$), they may be affected by them.
 
 Now that we've specified a causal ordering, let's continue our **setup** and write down the g formula for the per protocol averages. We are trying to quantify:
 $$ P(Y^{r=\overline{x}}=1), $$
-which can be interpreted as the risk of the outcome (in this case, live birth) that would be observed if someone were assigned to treatment level $r$, and their complete course of compliance over follow-up matched what they were randomized to.  Under our selected causal ordering, we can define the marginal probability of $Y$ as a function of the conditional probabilities of all relevant variables over all months of follow-up via the law of total probability. Applying this to all variables over all months yields: 
+which can be interpreted as the risk of the outcome (in this case, live birth) that would be observed if someone were assigned to treatment level $r$, and their complete course of compliance over follow-up matched what they were randomized to.  Under our selected causal ordering, we can define the marginal probability of $Y$ as a function of the conditional probabilities of all relevant variables over all months of follow-up via the law of total probability. Applying this to all variables over all months yields the following compact equation: 
  \begin{equation}
  \begin{split}
  	 	P(Y_k^{\overline{x}_k,r,\overline{c}=0} = 1) = \sum_{m=0}^k \sum_{\overline{w}_m} P(Y_m = 1 & \mid \overline{X}_m := \overline{x}_m, R := r,\overline{C}_m:=0, \overline{W}_m=\overline{w}_m) \\ & \prod_{j=0}^m f(w_j\mid \overline{X}_m := \overline{x}_m, R := r,\overline{C}_m:=0,\overline{W}_{j-1}=\overline{w}_{j-1}),
@@ -564,11 +946,308 @@ which can be interpreted as the risk of the outcome (in this case, live birth) t
  \end{equation}
 \noindent where $:=$ denotes ``setting'' the random variable to a fixed value, and $f(w_j \mid \bullet )$ denotes the joint distribution of all time-dependent and baseline covariates $w$. We quantify the probability in equation \ref{gform} twice: first setting assignment to $R=1$, and all compliance values to $\overline{x}=1$ and then setting assignment to $R=0$, and all compliance values to $\overline{x}=0$. Taking the difference or ratio of these two probabilities provides the causal effect of interest.
 
-This equation may look intimidating, but it is essentially an application of the law of total probability to the variables in our EAGeR data.
+This equation is essentially an application of the law of total probability to the variables in our EAGeR data. If we expanded this equation and used the same notation as in the causal ordering table, we would obtain: 
 
-```{r, out.width = "200px",fig.cap="Algorithmic description of the parametric g formula displayed in equation \ref{gform}. The algorithm begins with a random resample of all baseline covariates ($V$) and all time-varying covariates ($X,B,Z$) at the first month on study ($m=1$) from the observed data. These covariates are used to predict compliance and then bleeding at the second month on study ($X_2,B_2$). Each observation's conception value at the previous month ($m=1$) on study is then examined. If conception occurred in $m=1$, then in $m=2$ the observation is at risk pregnancy loss ($D_m$) or live birth ($Y_m$). If conception did not occur, then the observation is at risk of ending follow-up without pregnancy ($S_m$). If any terminal events occur, follow-up is ended. If not, the the month is advanced by one and the algorithm is re-iterated until a terminal event occurs, or $m$ reaches 15. In this manner, a simulated follow-up for each observation is generated. All predictions are simulated from regression models fit in the observed data.",echo=F}
+```{r, out.width = "550px",echo=F,fig.align='center'}
+knitr::include_graphics("g_formulaEAGER.pdf")
+```
+
+If this lengthy equation still doesn't help clarify how to implement the g formula to estimate the per protocol effect, we can interpret it as an algorithm depicted in the following Figure: 
+
+```{r, out.width = "200px",fig.cap="Algorithmic description of the parametric g formula displayed in equation \ref{gform}. The algorithm begins with a random resample of all baseline covariates ($V$) and all time-varying covariates ($X,B,Z$) at the first month on study ($m=1$) from the observed data. These covariates are used to predict compliance and then bleeding at the second month on study ($X_2,B_2$). Each observation's conception value at the previous month ($m=1$) on study is then examined. If conception occurred in $m=1$, then in $m=2$ the observation is at risk pregnancy loss ($D_m$) or live birth ($Y_m$). If conception did not occur, then the observation is at risk of ending follow-up without pregnancy ($S_m$). If any terminal events occur, follow-up is ended. If not, the the month is advanced by one and the algorithm is re-iterated until a terminal event occurs, or $m$ reaches 15. In this manner, a simulated follow-up for each observation is generated. All predictions are simulated from regression models fit in the observed data.",echo=F,fig.align='center'}
 knitr::include_graphics("g_formula.pdf")
 ```
+
+This Figure shows the process by which the g formula takes as input all baseline variables ($V$) and each time-dependent variable at the first month on study ($m=1$, rectangular box at top of diagram), and generates a predicted compliance value for the second month on study ($m=2$). The predicted bleeding value is then generated using predicted compliance at $m=2$, observed time-dependent covariates at $m=1$, and all baseline covariates. If, in the previous time-point ($m=1$), conception occurred, then the conception value at the subsequent time-point ($m=2$) will be set to one. Otherwise it will be predicted using the bleeding and compliance values generated for $m=2$, the time-dependent covariate values at $m=1$, and all baseline covariates. If $Z_m$ is predicted to be one, then the algorithm proceeds down the left path in which withdrawal, pregnancy loss, and live birth are predicted to occur. Otherwise, the algorithm proceeds down the right path in which end of follow-up without pregnancy is predicted. If no terminal events are predicted to occur (pregnancy loss, live birth, end of follow-up without pregnancy), and $m \leq 15$, then $m$ is advanced by one and the algorithm iterated. 
+
+As mentioned above, certain EAGeR design features can (should) be used when writing the code to implement the parametric g formula. We can improve the performance of the algorithm by refining models to account for the natural history of pregnancy. For example, there were no live births prior to 8 months on study, as all women were randomized pre-conception. Therefore, we set $Y$ to zero for $m<8$.  Second, no pregnancy loss occurred in the first two months on study, so we set $D$ to zero for $m<=2$. Finally, follow-up ended if a woman did not become pregnant in the first six months on study. Therefore, if no conception was predicted to occur within $m=6$, the algorithm was stopped by setting $S$ to one.
+
+This algorithmic approach to solving for the g formula in equation \ref{gform} relies on Monte Carlo integration [@Metropolis1949], which is subject to variation from both empirical and simulation sources. To reduce simulation variation, we input into the algorithm a random resample (with replacement) of 10,000 women from the original sample of 1,228 participants. We chose 10,000 as our target resample size because no notable improvements occurred with a target sample of 15,000. In the context of a randomized trial, empirical variation can be reduced by accounting for study design, which can be accomplished by resampling (with replacement) within levels of the randomization indicators (5,000 in each group). 
+
+To estimate the per-protocol effect in the absence of withdrawal, we run the algorithm twice. First by setting both randomization and compliance to one, and setting withdrawal to zero for all observations over all follow-up, and again by setting randomization and compliance and withdrawal to zero. These yield outcomes distributed as they would if all women (first) and no women (second) took aspirin over follow-up, and no one withdrew from the study. We then take the difference and ratio of averages of these outcomes to estimate the causal risk differences and ratios of interest.
+
+Each of the blue arrows connecting one set of covariates to the next in the above Figure represents a parametric model in which the variable to be predicted is modeled conditional on all variables that precede it. These models must be fit in the original sample of 1,228 women, and not a larger resample. Furthermore, assuming that conditional on all covariates in each model, withdrawal from the study occurs at random, these models are fit among the subset of women who remained on study.
+
+For example, the arrow from all baseline covariates and time-dependent covariates at time $m=1$ to $X_m$ in the Figure represents a pooled logistic regression model for the probability of $X_j=1$ in long equation above. In our implementation, this model was specified as:
+\begin{equation}
+\begin{split}
+	\logit	P \big ( X_j=1 \mid & \;\overline{X}_{j-1}, \overline{N}_{j-1}, \overline{B}_{j-1},\overline{N}_{j-1},\overline{Z}_{j-1}, \overline{V}, \overline{C}_J=0 \big ) \\ & = \beta_j + \beta_1 X_{j-1} + \beta_2 N_{j-1} + \beta_3 N_{j-2} \\ & \hskip 1.5cm + \beta_4 B_{j-1} + \beta_5 B_{j-2} + \beta_6 Z_{j-1} + \beta_7 Z_{j-2} + \boldsymbol{\beta}^{\intercal}_V V,
+\end{split}
+	\label{logit}
+\end{equation} 
+where $\logit \bullet \equiv \tfrac{\log(\bullet)}{\log(1-\bullet)}$, $V$ represents a vector of baseline covariates that includes study site, randomization date, eligibility stratum, age at study entry, income, race/ethnicity, education, marital status, employment status, and where the study time-scale $j = 1 \ldots J$ reflects each person's month since randomization. The intercept $\beta_j$ is month specific, which can be accomplished by including the month since randomization variable, and some terms (e.g., splines or fractional polynomials) that account for potential nonlinearity. 
+
+In R, this model would look something like:
+```{r, eval=F,echo=T,fig.star=T,tidy=F,highlight=T,message=F}
+library(splines)
+fitX<-glm(X~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+               Xl+Xl1+B+Bl+Bl1+N+Nl+Nl1+Z+Zl+Zl1+ns(jj,df=3),
+                family=binomial,data=boot,subset=R==k)
+```
+
+Note this model assumes that the histories $\overline{X}_{j-1}$, $\overline{B}_{j-1}$, $\overline{N}_{j-1}$, and $\overline{Z}_{j-1}$ in the conditioning statement of the left hand side of equation \ref{logit} are adequately represented by the values of these variables in the previous two time-points (i.e., at months $j-1$ and $j - 2$). These correspond to "Xl" and "Xl1" in the R code above. This is an assumption whose potential effects could be evaluated by adding lagged terms for each variables to the right hand side of equation \ref{logit}, and by including relevant interactions.
+
+The following code implements the parametric g formula to estimate the per protocol effect:
+
+```{r, eval=T,echo=T,fig.star=T,tidy=F,highlight=T}
+# load required libraries
+library(data.table)
+library(splines)
+# #################
+
+setwd("~/Dropbox/Documents/Research/Presentations/SER 2017/SER Workshop/pgf_course-master/")
+
+## CODE SET NN
+# import data
+aspirin<-read.table("aspirin2.txt",header=T,sep="\t")
+
+## look at data, re-assign to a2
+a2<-aspirin
+#head(a2)
+
+## create variables: baseline confounders
+SS<-data.frame(model.matrix(~factor(a2$site))[,-1]);names(SS)<-c(paste("V",1:6,sep=""))
+a2<-cbind(a2,SS)
+names(a2)[names(a2)=="eligibility"]<-"V7"
+names(a2)[names(a2)=="age"]<-"V8"
+names(a2)[names(a2)=="income"]<-"V9"
+names(a2)[names(a2)=="education"]<-"V10"
+names(a2)[names(a2)=="white"]<-"V11"
+names(a2)[names(a2)=="marital"]<-"V12"
+names(a2)[names(a2)=="employed"]<-"V13"
+names(a2)[names(a2)=="BMI"]<-"V14"
+names(a2)[names(a2)=="treatment"]<-"R"
+
+## time-dependent variables
+names(a2)[names(a2)=="study_month"]<-"j"
+  a2$jj<-scale(a2$j);mean_j<-attributes(a2$jj)$`scaled:center`;sd_j<-attributes(a2$jj)$`scaled:scale`
+names(a2)[names(a2)=="compliance"]<-"X"
+names(a2)[names(a2)=="bleeding"]<-"B"
+names(a2)[names(a2)=="gastro"]<-"N"
+names(a2)[names(a2)=="conceived"]<-"Z"
+
+# outcomes
+names(a2)[names(a2)=="efuwp"]<-"S"
+names(a2)[names(a2)=="pregnancy_loss"]<-"D"
+names(a2)[names(a2)=="live_birth"]<-"Y"
+
+# lag variables
+a2<-data.table(a2)
+a2[, Xl:=c(0, X[-.N]), by=id]
+a2[, Bl:=c(0, B[-.N]), by=id]
+a2[, Nl:=c(0, N[-.N]), by=id]
+a2[, Zl:=c(0, Z[-.N]), by=id]
+a2[, Xl1:=c(0, Xl[-.N]), by=id]
+a2[, Bl1:=c(0, Bl[-.N]), by=id]
+a2[, Nl1:=c(0, Nl[-.N]), by=id]
+a2[, Zl1:=c(0, Zl[-.N]), by=id]
+head(a2)
+
+# indicator of last record
+# a2$last<-as.numeric(!duplicated(a2$id,fromLast=T))
+
+# look at summaries of data
+# summary(a2)
+
+# function to bootstrap the g formula
+seed=0
+set.seed(seed)
+clusters <- names(table(a2$id))
+index <- sample(1:length(clusters), length(clusters), replace=TRUE) 
+bb <- table(clusters[index])
+boot <- NULL
+if(seed==0){
+  boot<-a2
+} else{
+for(jj in 0:max(bb)){
+  cc <- a2[a2$id %in% names(bb[bb %in% c(jj:max(bb))]),]
+  cc$bid<-paste0(cc$id,jj)
+  boot <- rbind(boot, cc)
+}}
+identical(boot,a2)
+# fit models
+Rfit<-function(k){
+  ## time-varying confoudner 1 (bleeding)
+fitB<-glm(B~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+             Xl+Xl1+Bl+Bl1+Nl+Nl1+Zl+Zl1+ns(jj,df=3),
+              family=binomial,data=boot,subset=R==k)
+  ## time-varying confoudner 2 (gastro)
+  fitN<-glm(N~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+             Xl+Xl1+B+Bl+Bl1+Nl+Nl1+Zl+Zl1+ns(jj,df=3),
+              family=binomial,data=boot,subset=R==k)
+  #time-varying confounder 3 (conception)
+  fitZ<-glm(Z~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+                Xl+B+Bl+N+Nl+ns(jj,df=3),
+                  family=binomial,data=boot,subset=Zl==0&R==k)
+  ## compliance
+  fitX<-glm(X~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+               Xl+Xl1+B+Bl+Bl1+N+Nl+Nl1+Z+Zl+Zl1+ns(jj,df=3),
+                family=binomial,data=boot,subset=R==k)
+  #outcome 1 (end of follow-up without pregnancy)
+  fitS<-glm(S~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+               X+Xl+B+Bl+N+Nl+jj,
+                family=binomial,data=boot,subset=Z==0&R==k)
+  #outcome 2 (pregnancy loss)
+  fitD<-glm(D~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+               X+Xl+B+Bl+N+Nl+ns(jj,df=3),
+                family=binomial,data=boot,subset=Z==1&R==k)
+  #outcome 3 (live birth)
+  fitY<-glm(Y~V1+V2+V3+V4+V5+V6+V7+ns(V8,df=3)+V9+V10+V11+V12+V13+ns(V14,df=3)+
+               X+Xl+X*Xl+B+Bl+N+Nl+ns(jj,df=1),
+                family=binomial,data=boot,subset=Z==1&R==k)
+  return(list(fitX,fitB,fitN,fitZ,fitS,fitD,fitY))
+}
+fitR<-lapply(0:1,function(x) Rfit(x))
+
+#create object to hold results from pgf function
+cols<-c("boot","id","j","Y")
+res.g <- data.frame(matrix(nrow=1,ncol=length(cols))); colnames(res.g) <- cols
+
+# PREDICT FOLLOW-UP BASED ON G FORMULA USING PGF FUNCTION
+pgf<-function(ii, mc_data, length, randomization = NULL, exposure = NULL){
+  
+    # define generic prediction function
+    pFunc<-function(mod,ndat){as.numeric(
+      predict(mod,newdata=ndat,type="response")>runif(1))}
+    d <- mc_data
+    d<-d[d$id==ii,]
+    lngth <- length
+    Vp <- Rp <- Bp <- Np <- Zp <- Xp <- Sp <- Dp <- Yp <- mm <- numeric()
+    mm[1] <- j <- 1
+    id <- d$id
+    Vp <- d[, c("V1", "V2", "V3", "V4", "V5", "V6", "V7","V8","V9","V10","V11","V12","V13","V14")]
+    if (is.null(randomization)) {
+      Rp <- d$R
+    } else {
+      Rp <- randomization
+    }
+    if (is.null(exposure)) {
+      Xp[1] <- d$X
+    } else {
+      Xp[1] <- exposure
+    }
+    Bp[1] <- d$B
+    Np[1] <- d$N
+    Zp[1] <- d$Z
+    Sp[1] <- Yp[1] <- 0
+    dDp <- data.table(Vp, X = Xp[j], Xl = 0, Xl1 = 0, 
+                      B = Bp[j], Bl = 0, Bl1 = 0, N = Np[j],
+                      Nl = 0, Nl1 = 0,jj=((j-mean_j)/sd_j))
+    Dp[1] <- ifelse(Zp[1] == 1, 
+                    pFunc(fitR[[Rp+1]][[6]], dDp),
+                    0)
+
+    for (j in 2:lngth) {
+      if (Sp[j - 1] == 0 & Dp[j - 1] == 0 & Yp[j - 1] == 0) {
+        if (j==2){
+          Xl1<-Bl1<-Nl1<-Zl1<-0
+        } else{
+          Xl1 <- Xp[j - 2]
+          Bl1 <- Bp[j - 2]
+          Nl1 <- Np[j - 2]
+          Zl1 <- Zp[j - 2]
+        }
+  
+        dBp <- data.table(Vp, X = Xp[j], Xl = Xp[j - 1], Xl1, 
+                          Zl=Zp[j-1], Zl1,Bl = Bp[j - 1], Bl1, 
+                          Nl = Np[j - 1], Nl1, jj=((j-mean_j)/sd_j))
+        Bp[j] <- pFunc(fitR[[Rp+1]][[2]], dBp)
+        
+        dNp <- data.table(Vp, X = Xp[j], Xl = Xp[j - 1], Xl1, 
+                          B = Bp[j], Bl = Bp[j - 1], Bl1,  
+                          Nl = Np[j - 1], Nl1, Zl=Zp[j-1], 
+                          Zl1, jj=((j-mean_j)/sd_j))
+        Np[j] <- pFunc(fitR[[Rp+1]][[3]], dNp)
+        
+        dZp <- data.table(Vp, X = Xp[j], Xl = Xp[j - 1], 
+                          B = Bp[j], Bl = Bp[j - 1], 
+                          N = Np[j], Nl = Np[j - 1],jj=((j-mean_j)/sd_j))
+        if (Zp[j - 1] == 0){
+          Zp[j] <- pFunc(fitR[[Rp+1]][[4]], dZp)
+        } else {
+          Zp[j] <- 1
+        }
+
+        if (is.null(exposure)) {
+          dXp <- data.table(Vp, Xl = Xp[j - 1], Xl1, Zl=Zp[j-1], 
+                            Zl1, B=Bp[j], Bl = Bp[j - 1], Bl1, 
+                            N=Np[j],Nl = Np[j - 1], Nl1,Z=Zp[j],jj=((j-mean_j)/sd_j))
+          Xp[j] <- pFunc(fitR[[Rp+1]][[1]], dXp)
+        }
+        else {
+          Xp[j] <- exposure
+        }
+        
+        dSp <- data.table(Vp, X = Xp[j], Xl = Xp[j - 1], 
+                          B = Bp[j], Bl = Bp[j - 1],
+                           N = Np[j], Nl = Np[j -1],jj=((j-mean_j)/sd_j))
+         if (j > 4 & Zp[j] == 0) {
+           Sp[j] <- pFunc(fitR[[Rp+1]][[5]], dSp)
+         } else {
+           Sp[j] <- 0
+         }
+        
+         dDp <- data.table(Vp, X = Xp[j], Xl = Xp[j - 1], 
+                           Xl1, B = Bp[j], Bl = Bp[j - 1], Bl1, 
+                           N = Np[j], Nl = Np[j - 1], Nl1,jj=((j-mean_j)/sd_j))
+         if (j < 11 & Sp[j] == 0 & Zp[j] == 1){
+           Dp[j] <- pFunc(fitR[[Rp+1]][[6]], dDp)
+         } else {
+           Dp[j] <- 0
+         }
+         dYp <- data.table(Vp, B = Bp[j], Bl = Bp[j - 1], 
+                           N = Np[j], Nl = Np[j - 1],
+                           X=Xp[j],Xl=Xp[j-1],jj=((j-mean_j)/sd_j))
+         if (j > 8 & Dp[j] == 0 & Sp[j] == 0 & Zp[j] == 1){
+           Yp[j] <- pFunc(fitR[[Rp+1]][[7]], dYp)
+         } else {
+           Yp[j] <- 0
+         }
+      }
+      else {
+        break
+      }
+      mm[j] <- j
+      if(Sp[j]==1|Dp[j]==1|Yp[j]==1|j==15){
+        res.g$boot<-seed;res.g$id<-ii
+        res.g$j<-j;res.g$Y<-Yp[j]
+      }
+    }
+    #print(ii)
+    return(res.g)
+}
+
+## create monte carlo dataset
+# select first obs for each person to obtain joint empirical distribution of baseline covariates
+MC0<-boot[boot$j==1,]
+montecarlo<-500
+
+# sample with replacement from each treatment arm
+spl <- split(MC0, list(MC0$R))
+samples <- lapply(spl, function(x) x[sample(1:nrow(x), montecarlo/length(spl), replace=T),])
+MC <- rbindlist(samples)
+MC$id<-1:montecarlo
+bn<-lapply(1:montecarlo,function(i) pgf(ii=i,mc_data=MC,length=15,randomization=NULL,exposure=NULL))
+bn<-rbindlist(bn)
+head(bn,3);tail(bn,3)
+
+b1<-lapply(1:montecarlo,function(i) pgf(ii=i,mc_data=MC,length=15,randomization=1,exposure=1))
+b1<-rbindlist(b1)
+head(b1,3);tail(b1,3)
+
+b0<-lapply(1:montecarlo,function(i) pgf(ii=i,mc_data=MC,length=15,randomization=0,exposure=0))
+b0<-rbindlist(b0)
+head(b0,3);tail(b0,3)
+
+mean(bn$Y,na.rm=T);mean(a2[a2$last==1,]$Y)
+
+mean(b1$Y,na.rm=T)
+mean(b0$Y,na.rm=T)
+
+(mean(b1$Y,na.rm=T)-mean(b0$Y,na.rm=T))*100
+coef(lm(Y~R,data=a2[a2$last==1,]))[2]*100
+```
+
 \newpage
 
 # References
